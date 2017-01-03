@@ -82,4 +82,4 @@ augroup MultiplayerGlobalAuGroup
 augroup END
 
 
-"!for x in $(ls /tmp/vim* | sed -e 's/[^0-9]*\(.*\)/\1/'); do kill $x; done && rm /tmp/vim*
+"!for x in $(ls /tmp/vim* | sed -e 's/[^0-9]*\(.*\)/\1/'); do kill $x; done || rm /tmp/vim*

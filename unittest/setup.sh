@@ -1,7 +1,7 @@
 vimtestdir=$(mktemp -d)
 mkdir $vimtestdir/.vim
-cp -r ~/.vim/bundle/multiplayer/* $vimtestdir/.vim
-rm $vimtestdir/.vim/profile*
+cp -r ~/.vim/bundle/multiplayer.vim/* $vimtestdir/.vim
+rm -f $vimtestdir/.vim/profile*
 
 succes_cmd="${succes_cmd:-qall!}"
 
@@ -32,8 +32,38 @@ set tabstop=4
 "call timer_start(5000, {-> feedkeys("ihej\<ESC>")})
 call timer_start(500, {-> <SID>Test()})
 
-function! SendUnicastMsg(command, from_pid, buff, msg)
-	call writefile(extend([a:command, a:from_pid, a:buff, len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . getpid())
+let g:players = {}
+let s:next_debug_pid = 1000001
+
+function! SendUnicastMsg(command, from_pid, msg)
+	call writefile(extend([a:command, a:from_pid, g:players[a:from_pid].file, len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . getpid())
+endfunction
+
+function! SendCursor(from_pid)
+	call SendUnicastMsg('cursor', a:from_pid, [g:players[a:from_pid].mode] + g:players[a:from_pid].range)
+endfunction
+
+function! s:MyHandlerOut(channel, msg, pid)
+	call add(g:players[a:pid].read_buffer, a:msg)
+	if len(g:players[a:pid].read_buffer) > 3 && g:players[a:pid].read_buffer[3] + 4 == len(g:players[a:pid].read_buffer)
+		call add(g:players[a:pid].msgs, g:players[a:pid].read_buffer)
+		let g:players[a:pid].read_buffer = []
+	endif
+endfunction
+
+function! CreatePlayer()
+	let pid = s:next_debug_pid
+	let s:next_debug_pid = s:next_debug_pid + 1
+	let g:players[pid] = {}
+	let g:players[pid].read_buffer = []
+	let g:players[pid].msgs = []
+	let g:players[pid].file = "a.txt"
+	let g:players[pid].mode = "n"
+	let g:players[pid].range = [1,1,1,1]
+	call system('mkfifo /tmp/vim_multi_player_pipe_' . pid)
+	call system('sleep infinity > /tmp/vim_multi_player_pipe_' . pid . ' &')
+	let job = job_start('cat /tmp/vim_multi_player_pipe_' . pid, {"out_cb": { channel, msg -> call('s:MyHandlerOut', [channel, msg, pid])}})
+	return pid
 endfunction
 
 function! s:Test()

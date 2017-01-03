@@ -14,26 +14,38 @@
         (+)__(+)           (+)__(+)                           (+)__(+)
         //    \\           //    \\                           //    \\
 ==============================================================================
-CONTENTS                                                *multiplayer-contents*
+CONTENTS                                                  *multiplayer-contents*
 
-    1. Intro........................................|multiplayer-intro|
-    2. Options......................................|multiplayer-options|
-    3. Commands.....................................|multiplayer-commands|
-    4. Statusline...................................|multiplayer-statusline||
-    5. Mappings.....................................|multiplayer-mappings|
+    1. Intro.................................................|multiplayer-intro|
+    2. Options.............................................|multiplayer-options|
+    3. Commands...........................................|multiplayer-commands|
+    4. Statusline.......................................|multiplayer-statusline||
+    5. Mappings...........................................|multiplayer-mappings|
+    6. Future...............................................|multiplayer-future|
 
 ==============================================================================
-INTRO                                                      *multiplayer-intro*
+INTRO                                                        *multiplayer-intro*
 
-This Vim plugin allows multiple players (users) to edit the same file at the same time.
+This Vim plugin allows multiple players (users) to edit the same file at the
+same time.
 Install the plugin on one computer. Now all players should ssh into this
 computer. If a player opens a file that is already open by another player
 (there is a .swp-file), then that player is invited to join as multiplayer.
 (press 'M'). Users can also explicitly connect and disconnect.
 Each player can set some player specific options that are stored in a profile
 and loaded the next time that player enters vim.
+You can read other players registers, so you can put (paste) what an other
+user has yanked (copied).
+You can also read other players ':'-register and '/'-register, so you can
+re-use thier ex-commands and search patterns.
+You can jump to an other players location (file, line, column) or to an
+other players last visual selection.
+You can configure Multiplayer to follow other players in split windows if
+they move out of your field of view. Either in the same file, or in to
+an other file.
+
 ==============================================================================
-OPTIONS                                                  *multiplayer-options*
+OPTIONS                                                    *multiplayer-options*
 
   |g:loaded_multiplayer|
     Set this to 1 to disable Multiplayer completely.
@@ -69,7 +81,7 @@ OPTIONS                                                  *multiplayer-options*
     mapping to chat. See also |MultiplayerChat|
 
   |g:multiplayer_chat_destination|
-    A string that specifies where chat messages go.
+    A string that specifies where incoming chat messages go.
     Can be set to any combination of the following:
 
     c	incoming chat goes to |quickfix| window
@@ -87,7 +99,7 @@ The options are typically set in your .vimrc. If a player wants a different
 configuration, then he should use :MultiplayerConfigure
 
 ==============================================================================
-COMMANDS                                                *multiplayer-commands*
+COMMANDS                                                  *multiplayer-commands*
 
 :MultiplayerConnect
     Connect
@@ -95,20 +107,30 @@ COMMANDS                                                *multiplayer-commands*
 :MultiplayerDisconnect
     Disconnect
 
-:MultiplayerChat
+:MultiplayerChat {expr}
     Send chat message to all players
 
-:MultiplayerLet
+:MultiplayerLet {var-name} = {expr}
     Assign variable for current player profile. For example:
 >
     :MultiplayerLet &statusline='dull_status'
     :MultiplayerLet &ts=9
 <
+:MultiplayerLet {var-name}
+    Show one assignments for current player profile. For example:
+>
+    :MultiplayerLet &ts
+<
+:MultiplayerLet
+    Show all assignments for current player profile:
+>
+    :MultiplayerLet
+<
 :MultiplayerConfigure
     Go through configuration step-by-step. (You must be connected)
 
 ==============================================================================
-STATUSLINE                                            *multiplayer-statusline*
+STATUSLINE                                              *multiplayer-statusline*
 
     To get info about status of the multiplayer plugin, add this to your
     statusline in your .vimrc:
@@ -116,7 +138,7 @@ STATUSLINE                                            *multiplayer-statusline*
     let &statusline .= multiplayer#StatusLine()
 <
 ==============================================================================
-MAPPINGS                                                *multiplayer-mappings*
+MAPPINGS                                                  *multiplayer-mappings*
 
 In the following, <l> denotes the configurable map leader.
 If there are more than two players connected, <n> denotes a number pointing out
@@ -167,6 +189,18 @@ Command-line Mode: (search-mode/ex-mode)~
 Insert Mode:~
   <l><C-R>r<n>
     Insert contents of player-n's register r. Just like |i_CTRL-R|
+
+==============================================================================
+FUTURE                                                      *multiplayer-future*
+
+Should work on Windows and Mac as well.
+Don't depend on 'diff' in the OS.
+Problems if remote player has an other terminal encoding than the master.
+Follow other players in split windows.
+Go to other players visual selection.
+Notify other players when going to/from visual-line mode.
+Remove all remote cursors when disconnecting.
+MultiplayerLet functionality for showing assignments.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

@@ -254,7 +254,9 @@ function! s:ParseMsg(msg)
 		let s:players[pid].name = msg[0]
 		redrawstatus
 	elseif command == 'byebye'
+		let byefile = s:players[pid].file
 		unlet s:players[pid]
+		call <SID>DrawCursors([byefile])
 		redrawstatus
 	elseif command == 'written'
 		let written_as = msg[0]

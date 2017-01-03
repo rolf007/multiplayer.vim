@@ -7,9 +7,14 @@ EOL
 cat >>$vimtestdir/test.vim <<EOL
 
 MultiplayerConnect
-call SendUnicastMsg("hello", 1000001, "a.txt", [])
-call SendUnicastMsg("diff", 1000001, "a.txt", ['0a1', '> hello world'])
-sleep
+sleep 200m
+
+let my_pid = CreatePlayer()
+sleep 200m
+call SendUnicastMsg("hello", my_pid, [])
+sleep 200m
+call SendUnicastMsg("diff", my_pid, ['0a1', '> hello world'])
+sleep 200m
 call assert_equal("hello world", getline(1))
 
 EOL
