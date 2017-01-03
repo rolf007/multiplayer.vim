@@ -1,0 +1,172 @@
+*multiplayer_help.txt*	For Vim version 8.0	November 2016
+*multiplayer* *Multiplayer*
+==============================================================================
+  __  __ _    _ _   _______ _____ _____  _           __     ________ _____  
+ (  \/  ( )  ( ( ) (__   __(_   _(  __ \( )  V     /\\ \   / /  ____(  __ \ 
+ ( \  / ( )  ( ( )    ( )    ( ) ( (__) ( )  I    /  \\ \_/ /( (__  ( (__) )
+ ( )\/( ( )  ( ( )    ( )    ( ) (  ___/( )  M   / /\ \\   / (  __) (  _  / 
+ ( )  ( ( )__( ( )____( )   _( )_( )    ( )_____/ ____ \( )  ( (____( ) \ \ 
+ (_)  ( )\____/(______(_)  (_____( )    (______/_/    \_\_)  (______( )  \_\
+      (_)                        (_)                                (_)	
+        \                         /                                  /
+         \                       /                                  / 
+         _\__ _             _ __/_                             _ __/_ 
+        (+)__(+)           (+)__(+)                           (+)__(+)
+        //    \\           //    \\                           //    \\
+==============================================================================
+CONTENTS                                                *multiplayer-contents*
+
+    1. Intro........................................|multiplayer-intro|
+    2. Options......................................|multiplayer-options|
+    3. Commands.....................................|multiplayer-commands|
+    4. Statusline...................................|multiplayer-statusline||
+    5. Mappings.....................................|multiplayer-mappings|
+
+==============================================================================
+INTRO                                                      *multiplayer-intro*
+
+This Vim plugin allows multiple players (users) to edit the same file at the same time.
+Install the plugin on one computer. Now all players should ssh into this
+computer. If a player opens a file that is already open by another player
+(there is a .swp-file), then that player is invited to join as multiplayer.
+(press 'M'). Users can also explicitly connect and disconnect.
+Each player can set some player specific options that are stored in a profile
+and loaded the next time that player enters vim.
+==============================================================================
+OPTIONS                                                  *multiplayer-options*
+
+  |g:loaded_multiplayer|
+    Set this to 1 to disable Multiplayer completely.
+
+  |g:multiplayer_profiles_path|
+    Where to save player profiles. If this is not set, player profiles are
+    stored next to the plugin folder.
+
+  |g:multiplayer_name|
+    Default player name, if not set by player profile. If this is not set
+    either, then 'noname' is used.
+
+  |g:multiplayer_map_leader|
+    Default map leader, if not set by player profile. If this is not set
+    either, then <F4> is used.
+
+  |g:multiplayer_auto_connect|
+    connect automatically when vim starts up.
+    Default 'y' for remote users, and 'n' for local users.
+
+  |g:multiplayer_mapping_modes|
+    A string that selects in which modes mappings should be set.
+    Can be set to any combination of the following:
+
+    n	normal mode
+    c	command mode
+    i	insert mode (not recommended for unexperienced players)
+
+    default: "n"
+
+  |g:multiplayer_chat_mapping|
+    A mapping to quickly chat. Default <CR>. If set to empty, there's no quick
+    mapping to chat. See also |MultiplayerChat|
+
+  |g:multiplayer_chat_destination|
+    A string that specifies where chat messages go.
+    Can be set to any combination of the following:
+
+    c	incoming chat goes to |quickfix| window
+    l	incoming chat goes to |location-list|
+    e	incoming chat are |echo|'ed
+    m	incoming chat are |echom|'ed
+    C	outgoing chat goes to |quickfix| window
+    L	outgoing chat goes to |location-list|
+    E	outgoing chat are |echo|'ed
+    M	outgoing chat are |echom|'ed
+
+    default: "cmC"
+
+The options are typically set in your .vimrc. If a player wants a different
+configuration, then he should use :MultiplayerConfigure
+
+==============================================================================
+COMMANDS                                                *multiplayer-commands*
+
+:MultiplayerConnect
+    Connect
+
+:MultiplayerDisconnect
+    Disconnect
+
+:MultiplayerChat
+    Send chat message to all players
+
+:MultiplayerLet
+    Assign variable for current player profile. For example:
+>
+    :MultiplayerLet &statusline='dull_status'
+    :MultiplayerLet &ts=9
+<
+:MultiplayerConfigure
+    Go through configuration step-by-step. (You must be connected)
+
+==============================================================================
+STATUSLINE                                            *multiplayer-statusline*
+
+    To get info about status of the multiplayer plugin, add this to your
+    statusline in your .vimrc:
+>
+    let &statusline .= multiplayer#StatusLine()
+<
+==============================================================================
+MAPPINGS                                                *multiplayer-mappings*
+
+In the following, <l> denotes the configurable map leader.
+If there are more than two players connected, <n> denotes a number pointing out
+which other player the operation acts on.
+(See also |g:multiplayer_chat_mapping|)
+
+Normal Mode:~
+
+  ["r]<l>p<n>
+    Put the text [from register r] from player-n after the cursor. Just like |p|
+
+  ["r]<l>P<n>
+    Put the text [from register r] from player-n before the cursor. Just like |P|
+
+  <l>g.<n>
+    Go to player-n.
+
+  <l>gv<n>
+    Go to player-n's last visual selection. Just like |gv|
+
+  <l>/<n>
+    Search forward for player-n's last search pattern. Just like |/|
+
+  <l>?<n>
+    Search backward for player-n's last search pattern. Just like |?|
+
+  <l>*<n>
+    Search forward for the nearest word to player-n's cursor. Just like * (|star|)
+    Complete word.
+
+  <l>#<n>
+    Search backward for the nearest word to player-n's cursor. Just like |#|
+    Complete word.
+
+  <l>g*<n>
+    Search forward for the nearest word to player-n's cursor. Just like g* (|gstar|)
+
+  <l>g#<n>
+    Search backward for the nearest word to player-n's cursor. Just like |g#|
+
+  <l>:<n>
+    Edit player-n's last ex-command. Just like |:|
+
+Command-line Mode: (search-mode/ex-mode)~
+  <l><C-R>r<n>
+    Insert contents of player-n's register r. Just like |c_CTRL-r|
+
+Insert Mode:~
+  <l><C-R>r<n>
+    Insert contents of player-n's register r. Just like |i_CTRL-R|
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
