@@ -389,15 +389,21 @@ function! s:MapAll()
 		execute "nnoremap " . g:multiplayer_chat_mapping . " :MultiplayerChat "
 	endif
   	if g:multiplayer_mapping_modes =~# 'n'
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "p :call <SID>Put(v:register, 'p')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "P :call <SID>Put(v:register, 'P')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "/ /<C-R>=<SID>Put('/', 'c')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "? ?<C-R>=<SID>Put('/', 'c')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "* /<C-R>=<SID>Put('B', 'c')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "# ?<C-R>=<SID>Put('B', 'c')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g* /<C-R>=<SID>Put('A', 'c')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g# ?<C-R>=<SID>Put('A', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q/ :echom \"<l>q/ not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q? :echom \"<l>q? not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . ": :<C-R>=<SID>Put(':', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "p :call <SID>Put(v:register, 'p')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "P :call <SID>Put(v:register, 'P')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q: :echom \"<l>q: not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g. :echom \"<l>g. not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "gv :echom \"<l>gv not implemented yet\"<CR>"
 	endif
   	if g:multiplayer_mapping_modes =~# 'c'
 		execute "cnoremap <silent> " . g:multiplayer_map_leader . "<C-R> <C-R>=<SID>Put(nr2char(getchar()), 'c')<CR>"
@@ -412,10 +418,21 @@ function! s:UnmapAll()
 		execute "nunmap " . g:multiplayer_chat_mapping
 	endif
   	if g:multiplayer_mapping_modes =~# 'n'
-		execute "nunmap " . g:multiplayer_map_leader . "/"
-		execute "nunmap " . g:multiplayer_map_leader . ":"
 		execute "nunmap " . g:multiplayer_map_leader . "p"
 		execute "nunmap " . g:multiplayer_map_leader . "P"
+		execute "nunmap " . g:multiplayer_map_leader . "/"
+		execute "nunmap " . g:multiplayer_map_leader . "?"
+		execute "nunmap " . g:multiplayer_map_leader . "*"
+		execute "nunmap " . g:multiplayer_map_leader . "#"
+		execute "nunmap " . g:multiplayer_map_leader . "g*"
+		execute "nunmap " . g:multiplayer_map_leader . "g#"
+		execute "nunmap " . g:multiplayer_map_leader . "q/"
+		execute "nunmap " . g:multiplayer_map_leader . "q?"
+		execute "nunmap " . g:multiplayer_map_leader . ":"
+		execute "nunmap " . g:multiplayer_map_leader . "q:"
+		execute "nunmap " . g:multiplayer_map_leader . "g."
+		execute "nunmap " . g:multiplayer_map_leader . "g%"
+		execute "nunmap " . g:multiplayer_map_leader . "gv"
 	endif
   	if g:multiplayer_mapping_modes =~# 'c'
 		execute "cunmap " . g:multiplayer_map_leader . "<C-R>"

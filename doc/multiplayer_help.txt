@@ -153,11 +153,6 @@ Normal Mode:~
   ["r]<l>P<n>
     Put the text [from register r] from player-n before the cursor. Just like |P|
 
-  <l>g.<n>
-    Go to player-n.
-
-  <l>gv<n>
-    Go to player-n's last visual selection. Just like |gv|
 
   <l>/<n>
     Search forward for player-n's last search pattern. Just like |/|
@@ -179,8 +174,25 @@ Normal Mode:~
   <l>g#<n>
     Search backward for the nearest word to player-n's cursor. Just like |g#|
 
+  <l>q/<n>
+  <l>q?<n>
+    Open Command-line window, with player-n's search history.
+    Just like |q/| and |q?|
+
   <l>:<n>
     Edit player-n's last ex-command. Just like |:|
+
+  <l>q:<n>
+    Open Command-line window, with player-n's Ex history, Just like |q:|
+
+  <l>g.<n>
+    Go to player-n.
+
+  <l>g%<n>
+    Go to player-n's file.
+
+  <l>gv<n>
+    Go to player-n's last visual selection. Just like |gv|
 
 Command-line Mode: (search-mode/ex-mode)~
   <l><C-R>r<n>
