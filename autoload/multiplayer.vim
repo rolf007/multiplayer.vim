@@ -31,7 +31,7 @@ function! multiplayer#Connect()
 	let s:players[getpid()] = {"name":g:multiplayer_name, "file":"", "mode":"n", "range":[1,1,1,1]}
 	call <SID>MapAll()
 	command -nargs=1 MultiplayerChat call <SID>Chat("<args>")
-	command -nargs=1 MultiplayerLet call <SID>Let("<args>")
+	command -nargs=? MultiplayerLet call <SID>Let("<args>")
 	command -nargs=0 MultiplayerConfigure call <SID>Configure()
 	command -nargs=0 MultiplayerDisconnect call <SID>Disconnect()
 	delcommand MultiplayerConnect
@@ -109,9 +109,24 @@ function! s:Chat(chat_msg)
 endfunction
 
 function! s:Let(key_value)
+	if a:key_value == ''
+		for key in keys(s:player_profile)
+			call s:Let(key)
+		endfor
+		return
+	endif
 	let spl = split(a:key_value, '=')
-	if len(spl) < 2
-		echoerr "Error. Missing '='"
+	if len(spl) == 1
+		if has_key(s:player_profile, a:key_value)
+			if len(a:key_value) < 20
+				let alignment = repeat(" ", 20 - len(a:key_value))
+			else
+				let alignment = ""
+			endif
+			echo a:key_value . alignment . "  " . s:player_profile[a:key_value]
+		else
+			echoe "Undefined variable: " . a:key_value
+		endif
 		return
 	endif
 	let key = spl[0]
