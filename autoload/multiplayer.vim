@@ -48,8 +48,8 @@ function! multiplayer#Connect()
 	call <SID>Write()
 	let my_pid = getpid()
 	call system('mkfifo /tmp/vim_multi_player_pipe_' . my_pid)
-	call system('sleep infinity > /tmp/vim_multi_player_pipe_' . my_pid . ' &')
-    let job = job_start('cat /tmp/vim_multi_player_pipe_' . my_pid, {"out_cb": function("s:MyHandlerOut")})
+	let s:sleep_job = job_start(['/bin/sh', '-c', 'sleep infinity > /tmp/vim_multi_player_pipe_' . my_pid])
+	call job_start('cat /tmp/vim_multi_player_pipe_' . my_pid, {"out_cb": function("s:MyHandlerOut")})
 	call <SID>SendMulticastMsg('hello', [])
 	call <SID>SendMulticastMsg('iam', [<SID>GetNameFromPid(getpid())])
 	call <SID>SendMulticastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range)
@@ -154,6 +154,7 @@ function! s:Disconnect()
 	if s:profile_file != ''
 		call writefile([string(s:player_profile)], s:profile_file)
 	endif
+	call job_stop(s:sleep_job)
 	command -nargs=0 MultiplayerConnect call multiplayer#Connect()
 	delcommand MultiplayerDisconnect
 	delcommand MultiplayerChat
