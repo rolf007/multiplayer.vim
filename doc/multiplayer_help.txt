@@ -212,6 +212,7 @@ Follow other players in split windows.
 Go to other players visual selection.
 Notify other players when going to/from visual-line mode.
 Remove all remote cursors when disconnecting.
+Disable all mappings, if you are the only player connected.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

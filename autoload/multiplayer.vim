@@ -337,7 +337,7 @@ endfunction
 function! s:Put(register, operation)
 	let the_others = <SID>GetPlayers(getpid())
 	if len(the_others) == 0
-		return
+		return "\<CR>"
 	elseif len(the_others) == 1
 		let answer = 0
 	else
@@ -359,6 +359,9 @@ function! s:Put(register, operation)
 	"echom "you asked for register '" . a:register . "' from '" . the_others[answer] . "!"
 	call <SID>SendUnicastMsg('request_register', [a:operation, a:register], the_others[answer])
 	return ''
+endfunction
+
+function! s:GoToPlayer()
 endfunction
 
 
@@ -401,7 +404,7 @@ function! s:MapAll()
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q? :echom \"<l>q? not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . ": :<C-R>=<SID>Put(':', 'c')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q: :echom \"<l>q: not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g. :echom \"<l>g. not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g. :e s:GoToPlayer()<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "gv :echom \"<l>gv not implemented yet\"<CR>"
 	endif
