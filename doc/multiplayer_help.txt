@@ -58,26 +58,27 @@ OPTIONS                                                    *multiplayer-options*
     Default player name, if not set by player profile. If this is not set
     either, then 'noname' is used.
 
-  |g:multiplayer_map_leader|
-    Default map leader, if not set by player profile. If this is not set
-    either, then <F4> is used.
+  |g:multiplayer_nmap_leader|
+    Default normal mode map leader, if not set by player profile. If this is
+    not set either, then <F4> is used. Leave empty to disable mappings in
+    normal mode.
+
+  |g:multiplayer_cmap_leader|
+    Default command-line mode map leader, if not set by player profile. If
+    this is not set either, then the empty string is used. Leave empty to
+    disable mappings in command-line mode.
+
+  |g:multiplayer_imap_leader|
+    Default insert mode map leader, if not set by player profile. If this is
+    not set either, then the empty string is used. Leave empty to disable
+    mappings in insert mode. (not recommended for unexperienced players.)
 
   |g:multiplayer_auto_connect|
     connect automatically when vim starts up.
     Default 'y' for remote users, and 'n' for local users.
 
-  |g:multiplayer_mapping_modes|
-    A string that selects in which modes mappings should be set.
-    Can be set to any combination of the following:
-
-    n	normal mode
-    c	command mode
-    i	insert mode (not recommended for unexperienced players)
-
-    default: "n"
-
   |g:multiplayer_chat_mapping|
-    A mapping to quickly chat. Default <CR>. If set to empty, there's no quick
+    A mapping to quickly chat. Default m<CR>. If set to empty, there's no quick
     mapping to chat. See also |MultiplayerChat|
 
   |g:multiplayer_chat_destination|
@@ -218,7 +219,6 @@ Problems if remote player has an other terminal encoding than the master.
 Follow other players in split windows.
 Go to other players visual selection.
 Notify other players when going to/from visual-line mode.
-Different mapleaders for different modes (normal, insert, command-line).
 Use broadcast for 'hello', and multicast and unicast for everything else.
 
 ==============================================================================

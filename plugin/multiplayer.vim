@@ -39,8 +39,16 @@ if !exists('g:multiplayer_name')
 	let g:multiplayer_name = "noname"
 endif
 
-if !exists('g:multiplayer_map_leader')
-	let g:multiplayer_map_leader = "<F4>"
+if !exists('g:multiplayer_nmap_leader')
+	let g:multiplayer_nmap_leader = "<F4>"
+endif
+
+if !exists('g:multiplayer_cmap_leader')
+	let g:multiplayer_cmap_leader = ""
+endif
+
+if !exists('g:multiplayer_imap_leader')
+	let g:multiplayer_imap_leader = ""
 endif
 
 if !exists('g:multiplayer_auto_connect')
@@ -49,10 +57,6 @@ if !exists('g:multiplayer_auto_connect')
 	else
 		let g:multiplayer_auto_connect = "y"
 	endif
-endif
-
-if !exists('g:multiplayer_mapping_modes')
-	let g:multiplayer_mapping_modes = 'n'
 endif
 
 if !exists('g:multiplayer_chat_mapping')
@@ -84,4 +88,4 @@ augroup MultiplayerGlobalAuGroup
 augroup END
 
 
-"!for x in $(ls /tmp/vim* | sed -e 's/[^0-9]*\(.*\)/\1/'); do kill $x; done || rm /tmp/vim*
+"for x in $(ls /tmp/vim* | sed -e 's/[^0-9]*\(.*\)/\1/'); do kill $x; done ; rm /tmp/vim*

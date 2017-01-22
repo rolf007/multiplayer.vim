@@ -139,14 +139,17 @@ function! multiplayer#Configure()
 	let name = input("Enter your name:", g:multiplayer_name)
 	call <SID>Let("g:multiplayer_name='" . name . "'")
 
-	let leader = input("Enter your map leader, e.g. <F4>, <C-Q> or mm:", g:multiplayer_map_leader)
-	call <SID>Let("g:multiplayer_map_leader='" . leader . "'")
+	let leader = input("Enter your normal mode map leader, e.g. <F4>, <C-Q> or mm:", g:multiplayer_nmap_leader)
+	call <SID>Let("g:multiplayer_nmap_leader='" . leader . "'")
+
+	let leader = input("Enter your command-line mode map leader, e.g. <F4>, <C-Q> or mm:", g:multiplayer_cmap_leader)
+	call <SID>Let("g:multiplayer_cmap_leader='" . leader . "'")
+
+	let leader = input("Enter your insert mode map leader, e.g. <F4>, <C-Q> or mm:", g:multiplayer_imap_leader)
+	call <SID>Let("g:multiplayer_imap_leader='" . leader . "'")
 
 	let auto = input("Enter auto connect (y/n):", g:multiplayer_auto_connect)
 	call <SID>Let("g:multiplayer_auto_connect='" . auto . "'")
-
-	let modes = input("Enter your mapping modes [nci]:", g:multiplayer_mapping_modes)
-	call <SID>Let("g:multiplayer_mapping_modes='" . modes . "'")
 
 	let chat_mapping = input("Enter your chat mapping, e.g. <CR>:", g:multiplayer_chat_mapping)
 	call <SID>Let("g:multiplayer_chat_mapping='" . chat_mapping . "'")
@@ -259,7 +262,7 @@ function! s:ParseMsg(msg)
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'iam'
-		echom "received iam: " . string(pid) . '-' . string(msg[0])
+		"echom "received iam: " . string(pid) . '-' . string(msg[0])
 		if !has_key(s:players, pid)
 			let s:players[pid] = {"name":msg[0],"file":file,"mode":"n","range":[1,1,1,1]}
 			if len(s:players) > 1
@@ -408,28 +411,28 @@ function! s:MapAll()
 	if g:multiplayer_chat_mapping != ''
 		execute "nnoremap " . g:multiplayer_chat_mapping . " :MultiplayerChat "
 	endif
-	if g:multiplayer_mapping_modes =~# 'n'
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "p :call <SID>Put(v:register, 'p')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "P :call <SID>Put(v:register, 'P')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "/ /<C-R>=<SID>Put('/', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "? ?<C-R>=<SID>Put('/', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "* /<C-R>=<SID>Put('B', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "# ?<C-R>=<SID>Put('B', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g* /<C-R>=<SID>Put('A', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g# ?<C-R>=<SID>Put('A', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q/ :echom \"<l>q/ not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q? :echom \"<l>q? not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . ": :<C-R>=<SID>Put(':', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q: :echom \"<l>q: not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g. :call <SID>GoToPlayer()<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "gv :echom \"<l>gv not implemented yet\"<CR>"
+	if g:multiplayer_nmap_leader != ''
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "p :call <SID>Put(v:register, 'p')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "P :call <SID>Put(v:register, 'P')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "/ /<C-R>=<SID>Put('/', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "? ?<C-R>=<SID>Put('/', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "* /<C-R>=<SID>Put('B', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "# ?<C-R>=<SID>Put('B', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g* /<C-R>=<SID>Put('A', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g# ?<C-R>=<SID>Put('A', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q/ :echom \"<l>q/ not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q? :echom \"<l>q? not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . ": :<C-R>=<SID>Put(':', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q: :echom \"<l>q: not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g. :call <SID>GoToPlayer()<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "gv :echom \"<l>gv not implemented yet\"<CR>"
 	endif
-	if g:multiplayer_mapping_modes =~# 'c'
-		execute "cnoremap <silent> " . g:multiplayer_map_leader . "<C-R> <C-R>=<SID>Put(nr2char(getchar()), 'c')<CR>"
+	if g:multiplayer_cmap_leader != ''
+		execute "cnoremap <silent> " . g:multiplayer_cmap_leader . "<C-R> <C-R>=<SID>Put(nr2char(getchar()), 'c')<CR>"
 	endif
-	if g:multiplayer_mapping_modes =~# 'i'
-		execute "inoremap <silent> " . g:multiplayer_map_leader . "<C-R> <C-R>=<SID>Put(nr2char(getchar()), 'c')<CR>"
+	if g:multiplayer_imap_leader != ''
+		execute "inoremap <silent> " . g:multiplayer_imap_leader . "<C-R> <C-R>=<SID>Put(nr2char(getchar()), 'c')<CR>"
 	endif
 endfunction
 
@@ -437,28 +440,28 @@ function! s:UnmapAll()
 	if g:multiplayer_chat_mapping != ''
 		execute "nunmap " . g:multiplayer_chat_mapping
 	endif
-	if g:multiplayer_mapping_modes =~# 'n'
-		execute "nunmap " . g:multiplayer_map_leader . "p"
-		execute "nunmap " . g:multiplayer_map_leader . "P"
-		execute "nunmap " . g:multiplayer_map_leader . "/"
-		execute "nunmap " . g:multiplayer_map_leader . "?"
-		execute "nunmap " . g:multiplayer_map_leader . "*"
-		execute "nunmap " . g:multiplayer_map_leader . "#"
-		execute "nunmap " . g:multiplayer_map_leader . "g*"
-		execute "nunmap " . g:multiplayer_map_leader . "g#"
-		execute "nunmap " . g:multiplayer_map_leader . "q/"
-		execute "nunmap " . g:multiplayer_map_leader . "q?"
-		execute "nunmap " . g:multiplayer_map_leader . ":"
-		execute "nunmap " . g:multiplayer_map_leader . "q:"
-		execute "nunmap " . g:multiplayer_map_leader . "g."
-		execute "nunmap " . g:multiplayer_map_leader . "g%"
-		execute "nunmap " . g:multiplayer_map_leader . "gv"
+	if g:multiplayer_nmap_leader != ''
+		execute "nunmap " . g:multiplayer_nmap_leader . "p"
+		execute "nunmap " . g:multiplayer_nmap_leader . "P"
+		execute "nunmap " . g:multiplayer_nmap_leader . "/"
+		execute "nunmap " . g:multiplayer_nmap_leader . "?"
+		execute "nunmap " . g:multiplayer_nmap_leader . "*"
+		execute "nunmap " . g:multiplayer_nmap_leader . "#"
+		execute "nunmap " . g:multiplayer_nmap_leader . "g*"
+		execute "nunmap " . g:multiplayer_nmap_leader . "g#"
+		execute "nunmap " . g:multiplayer_nmap_leader . "q/"
+		execute "nunmap " . g:multiplayer_nmap_leader . "q?"
+		execute "nunmap " . g:multiplayer_nmap_leader . ":"
+		execute "nunmap " . g:multiplayer_nmap_leader . "q:"
+		execute "nunmap " . g:multiplayer_nmap_leader . "g."
+		execute "nunmap " . g:multiplayer_nmap_leader . "g%"
+		execute "nunmap " . g:multiplayer_nmap_leader . "gv"
 	endif
-	if g:multiplayer_mapping_modes =~# 'c'
-		execute "cunmap " . g:multiplayer_map_leader . "<C-R>"
+	if g:multiplayer_cmap_leader != ''
+		execute "cunmap " . g:multiplayer_cmap_leader . "<C-R>"
 	endif
-	if g:multiplayer_mapping_modes =~# 'i'
-		execute "iunmap " . g:multiplayer_map_leader . "<C-R>"
+	if g:multiplayer_imap_leader != ''
+		execute "iunmap " . g:multiplayer_imap_leader . "<C-R>"
 	endif
 endfunction
 
