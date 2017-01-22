@@ -28,7 +28,7 @@ function! multiplayer#StatusLine()
 endfunction
 
 function! multiplayer#Connect()
-	let s:players[getpid()] = {"name":g:multiplayer_name, "file":"", "mode":"n", "range":[1,1,1,1]}
+	let s:players[getpid()] = {"name":g:multiplayer_name, "file":"", "mode":"n", "range":[0,0,0,0]}
 	call <SID>MapAll()
 	command -nargs=1 MultiplayerChat call <SID>Chat("<args>")
 	command -nargs=? MultiplayerLet call <SID>Let("<args>")
@@ -49,10 +49,11 @@ function! multiplayer#Connect()
 	let my_pid = getpid()
 	call system('mkfifo /tmp/vim_multi_player_pipe_' . my_pid)
 	let s:sleep_job = job_start(['/bin/sh', '-c', 'sleep infinity > /tmp/vim_multi_player_pipe_' . my_pid])
+	sleep 100m " make sure sleep keeps the cat alive
 	call job_start('cat /tmp/vim_multi_player_pipe_' . my_pid, {"out_cb": function("s:MyHandlerOut")})
 	call <SID>SendMulticastMsg('hello', [])
 	call <SID>SendMulticastMsg('iam', [<SID>GetNameFromPid(getpid())])
-	call <SID>SendMulticastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range)
+	call <SID>CursorMoved()
 endfunction
 
 
@@ -259,6 +260,7 @@ function! s:ParseMsg(msg)
 	elseif command == 'hello'
 		"echom "received hello: " . string(pid)
 		"echom "I would like to send iam " . <SID>GetNameFromPid(getpid()) . " to " . pid
+		"echom "sending cursor" . string(s:players[getpid()].range)
 		let s:players[pid] = {"name":"annon","file":"","mode":"n","range":[1,1,1,1]}
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
@@ -333,13 +335,12 @@ function! s:Patch(patch)
 	call setpos(".", pos)
 endfunction
 
-
-function! s:Put(register, operation)
+function! s:InputOther()
 	let the_others = <SID>GetPlayers(getpid())
 	if len(the_others) == 0
-		return "\<CR>"
+		return 0
 	elseif len(the_others) == 1
-		let answer = 0
+		return the_others[0]
 	else
 		let num = 0
 		for other in the_others
@@ -351,23 +352,40 @@ function! s:Put(register, operation)
 		echohl None
 		echon "?"
 		let answer = getchar() - 48
+		if answer < 0 || answer >= len(the_others)
+			return 0
+		endif
+		return the_others[answer]
 	endif
-	if answer < 0 || answer >= len(the_others)
+endfunction
+
+function! s:Put(register, operation)
+	let other = s:InputOther()
+	if other == 0
 		return ''
 	endif
 
-	"echom "you asked for register '" . a:register . "' from '" . the_others[answer] . "!"
-	call <SID>SendUnicastMsg('request_register', [a:operation, a:register], the_others[answer])
+	"echom "you asked for register '" . a:register . "' from '" . other . "!"
+	call <SID>SendUnicastMsg('request_register', [a:operation, a:register], other)
 	return ''
 endfunction
 
 function! s:GoToPlayer()
+	let other = s:InputOther()
+	if other == 0
+		return ''
+	endif
+	execute "edit " . s:players[other].file
+	let bufnum = bufnr(s:players[other].file)
+	let lnum = s:players[other].range[1]
+	let col = s:players[other].range[0]
+	call setpos('.', [bufnum, lnum, col, 0])
 endfunction
 
 
 function! s:AddToChatHistory(file, x, y, pid, chat_msg, incoming)
 	if (a:incoming && g:multiplayer_chat_destination =~# 'e') || (!a:incoming && g:multiplayer_chat_destination =~# 'E')
-	    execute "echohl MPCol" . <SID>GetPlayerPower(a:pid)
+		execute "echohl MPCol" . <SID>GetPlayerPower(a:pid)
 		redraw
 		echon <SID>GetFullNameFromPid(a:pid)
 		echohl None
@@ -391,7 +409,7 @@ function! s:MapAll()
 	if g:multiplayer_chat_mapping != ''
 		execute "nnoremap " . g:multiplayer_chat_mapping . " :MultiplayerChat "
 	endif
-  	if g:multiplayer_mapping_modes =~# 'n'
+	if g:multiplayer_mapping_modes =~# 'n'
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "p :call <SID>Put(v:register, 'p')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "P :call <SID>Put(v:register, 'P')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "/ /<C-R>=<SID>Put('/', 'c')<CR>"
@@ -404,14 +422,14 @@ function! s:MapAll()
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q? :echom \"<l>q? not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . ": :<C-R>=<SID>Put(':', 'c')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "q: :echom \"<l>q: not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g. :e s:GoToPlayer()<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g. :call <SID>GoToPlayer()<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_map_leader . "gv :echom \"<l>gv not implemented yet\"<CR>"
 	endif
-  	if g:multiplayer_mapping_modes =~# 'c'
+	if g:multiplayer_mapping_modes =~# 'c'
 		execute "cnoremap <silent> " . g:multiplayer_map_leader . "<C-R> <C-R>=<SID>Put(nr2char(getchar()), 'c')<CR>"
 	endif
-  	if g:multiplayer_mapping_modes =~# 'i'
+	if g:multiplayer_mapping_modes =~# 'i'
 		execute "inoremap <silent> " . g:multiplayer_map_leader . "<C-R> <C-R>=<SID>Put(nr2char(getchar()), 'c')<CR>"
 	endif
 endfunction
@@ -420,7 +438,7 @@ function! s:UnmapAll()
 	if g:multiplayer_chat_mapping != ''
 		execute "nunmap " . g:multiplayer_chat_mapping
 	endif
-  	if g:multiplayer_mapping_modes =~# 'n'
+	if g:multiplayer_mapping_modes =~# 'n'
 		execute "nunmap " . g:multiplayer_map_leader . "p"
 		execute "nunmap " . g:multiplayer_map_leader . "P"
 		execute "nunmap " . g:multiplayer_map_leader . "/"
@@ -437,10 +455,10 @@ function! s:UnmapAll()
 		execute "nunmap " . g:multiplayer_map_leader . "g%"
 		execute "nunmap " . g:multiplayer_map_leader . "gv"
 	endif
-  	if g:multiplayer_mapping_modes =~# 'c'
+	if g:multiplayer_mapping_modes =~# 'c'
 		execute "cunmap " . g:multiplayer_map_leader . "<C-R>"
 	endif
-  	if g:multiplayer_mapping_modes =~# 'i'
+	if g:multiplayer_mapping_modes =~# 'i'
 		execute "iunmap " . g:multiplayer_map_leader . "<C-R>"
 	endif
 endfunction

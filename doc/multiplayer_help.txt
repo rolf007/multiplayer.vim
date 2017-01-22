@@ -133,9 +133,16 @@ COMMANDS                                                  *multiplayer-commands*
 STATUSLINE                                              *multiplayer-statusline*
 
     To get info about status of the multiplayer plugin, add this to your
-    statusline in your .vimrc:
+    |statusline| in your .vimrc:
 >
     let &statusline .= multiplayer#StatusLine()
+<
+    To get vim's default statusline, but with multiplayer status inserted, try
+    this:
+>
+    let &statusline = "%<%f %h%m%r%="
+    let &statusline .= multiplayer#StatusLine()
+    let &statusline .= " %-14.(%l,%c%V%) %P"
 <
 ==============================================================================
 MAPPINGS                                                  *multiplayer-mappings*
@@ -213,6 +220,8 @@ Go to other players visual selection.
 Notify other players when going to/from visual-line mode.
 Remove all remote cursors when disconnecting.
 Disable all mappings, if you are the only player connected.
+Different mapleaders for different modes (normal, insert, command-line).
+Use broadcast for 'hello', and multicast and unicast for everything else.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
