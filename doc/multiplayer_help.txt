@@ -127,7 +127,7 @@ COMMANDS                                                  *multiplayer-commands*
     :MultiplayerLet
 <
 :MultiplayerConfigure
-    Go through configuration step-by-step. (You must be connected)
+    Go through configuration step-by-step. (You must be disconnected)
 
 ==============================================================================
 STATUSLINE                                              *multiplayer-statusline*
@@ -218,8 +218,6 @@ Problems if remote player has an other terminal encoding than the master.
 Follow other players in split windows.
 Go to other players visual selection.
 Notify other players when going to/from visual-line mode.
-Remove all remote cursors when disconnecting.
-Disable all mappings, if you are the only player connected.
 Different mapleaders for different modes (normal, insert, command-line).
 Use broadcast for 'hello', and multicast and unicast for everything else.
 

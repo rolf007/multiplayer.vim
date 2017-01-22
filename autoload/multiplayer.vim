@@ -29,12 +29,11 @@ endfunction
 
 function! multiplayer#Connect()
 	let s:players[getpid()] = {"name":g:multiplayer_name, "file":"", "mode":"n", "range":[0,0,0,0]}
-	call <SID>MapAll()
 	command -nargs=1 MultiplayerChat call <SID>Chat("<args>")
 	command -nargs=? MultiplayerLet call <SID>Let("<args>")
-	command -nargs=0 MultiplayerConfigure call <SID>Configure()
 	command -nargs=0 MultiplayerDisconnect call <SID>Disconnect()
 	delcommand MultiplayerConnect
+	delcommand MultiplayerConfigure
 	augroup MultiplayerAuGroup
 		autocmd!
 		autocmd VimLeave * call <SID>Disconnect()
@@ -136,13 +135,10 @@ function! s:Let(key_value)
 	let s:player_profile[key] = value
 endfunction
 
-function! s:Configure()
+function! multiplayer#Configure()
 	let name = input("Enter your name:", g:multiplayer_name)
-	let s:players[getpid()].name = name
 	call <SID>Let("g:multiplayer_name='" . name . "'")
-	call <SID>SendMulticastMsg('iam', [<SID>GetNameFromPid(getpid())])
 
-	call <SID>UnmapAll()
 	let leader = input("Enter your map leader, e.g. <F4>, <C-Q> or mm:", g:multiplayer_map_leader)
 	call <SID>Let("g:multiplayer_map_leader='" . leader . "'")
 
@@ -154,7 +150,6 @@ function! s:Configure()
 
 	let chat_mapping = input("Enter your chat mapping, e.g. <CR>:", g:multiplayer_chat_mapping)
 	call <SID>Let("g:multiplayer_chat_mapping='" . chat_mapping . "'")
-	call <SID>MapAll()
 
 	let chat_dest = input("Enter your chat destination [clemCLEM]:", g:multiplayer_chat_destination)
 	call <SID>Let("g:multiplayer_chat_destination='" . chat_dest . "'")
@@ -172,10 +167,10 @@ function! s:Disconnect()
 	endif
 	call job_stop(s:sleep_job)
 	command -nargs=0 MultiplayerConnect call multiplayer#Connect()
+	command -nargs=0 MultiplayerConfigure call multiplayer#Configure()
 	delcommand MultiplayerDisconnect
 	delcommand MultiplayerChat
 	delcommand MultiplayerLet
-	delcommand MultiplayerConfigure
 	let s:players = {}
 endfunction
 
@@ -261,19 +256,23 @@ function! s:ParseMsg(msg)
 		"echom "received hello: " . string(pid)
 		"echom "I would like to send iam " . <SID>GetNameFromPid(getpid()) . " to " . pid
 		"echom "sending cursor" . string(s:players[getpid()].range)
-		let s:players[pid] = {"name":"annon","file":"","mode":"n","range":[1,1,1,1]}
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'iam'
-		"echom "received iam: " . string(pid) . '-' . string(msg[0])
+		echom "received iam: " . string(pid) . '-' . string(msg[0])
 		if !has_key(s:players, pid)
-			let s:players[pid] = {"name":"annon","file":"","mode":"n","range":[1,1,1,1]}
+			let s:players[pid] = {"name":msg[0],"file":file,"mode":"n","range":[1,1,1,1]}
+			if len(s:players) > 1
+				call <SID>MapAll()
+			endif
 		endif
-		let s:players[pid].name = msg[0]
 		redrawstatus
 	elseif command == 'byebye'
 		let byefile = s:players[pid].file
 		unlet s:players[pid]
+		if len(s:players) <= 1
+			call <SID>UnmapAll()
+		endif
 		call <SID>DrawCursors([byefile])
 		redrawstatus
 	elseif command == 'written'
