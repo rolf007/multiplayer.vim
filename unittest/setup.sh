@@ -67,6 +67,19 @@ function! CreatePlayer()
 	return pid
 endfunction
 
+function! ExpectedMsg(command, msg)
+	return [a:command, string(getpid()), string(len(a:msg))] + a:msg
+endfunction
+
+function! GetMsg(pid)
+	if len(g:players[a:pid].msgs) == 0
+		return 0
+	endif
+	let ret = g:players[a:pid].msgs[0]
+	let g:players[a:pid].msgs = g:players[a:pid].msgs[1:]
+	return ret
+endfunction
+
 function! s:Test()
 	source test.vim
 	cgetexpr v:errors

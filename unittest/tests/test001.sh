@@ -53,18 +53,7 @@ execute "nnoremap <silent> mm :<C-U>call <SID>DebugChange(v:count)<CR>"
 execute "nnoremap <silent> md :<C-U>call <SID>DebugDisconnect()<CR>"
 
 
-function! s:getMsg(pid)
-	if len(g:players[a:pid].msgs) == 0
-		return 0
-	endif
-	let ret = g:players[a:pid].msgs[0]
-	let g:players[a:pid].msgs = g:players[a:pid].msgs[1:]
-	return ret
-endfunction
 
-function! s:mkMsg(command, msg)
-	return [a:command, string(getpid()), string(len(a:msg))] + a:msg
-endfunction
 
 sleep 200m
 
@@ -76,15 +65,15 @@ sleep 200m
 call SendUnicastMsg("hello", my_pid, [])
 sleep 1200m
 
-call assert_equal(s:mkMsg('iam', ['noname']), s:getMsg(my_pid))
-call assert_equal(s:mkMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), s:getMsg(my_pid))
-call assert_equal(0, s:getMsg(my_pid))
+call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), GetMsg(my_pid))
+call assert_equal(0, GetMsg(my_pid))
 
 call SendUnicastMsg("iam", my_pid, ['Tester'])
 call SendCursor(my_pid)
 call SendUnicastMsg("diff", my_pid, ['a.txt', '1c1', '< ', '---', '> hello world'])
 sleep 200m
-call assert_equal(0, s:getMsg(my_pid))
+call assert_equal(0, GetMsg(my_pid))
 
 call assert_equal(['hello world'], getline(1, '$'))
 call SendUnicastMsg("diff", my_pid, ['a.txt', '1a2,3', "> \<TAB>12345\<TAB>123", '> 123456789'])
@@ -98,7 +87,7 @@ let m = getmatches()
 call assert_equal(1, len(m))
 call assert_equal('MPCol2', m[0].group)
 call assert_equal('\%>5v\%<7v\%2l', m[0].pattern)
-call assert_equal(0, s:getMsg(my_pid))
+call assert_equal(0, GetMsg(my_pid))
 
 EOL
 
