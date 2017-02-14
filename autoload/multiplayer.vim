@@ -104,7 +104,7 @@ endfunction
 function! s:Chat(chat_msg)
 	let x = getpos(".")[2]
 	let y = getpos(".")[1]
-	call <SID>SendMulticastMsg('chat', [x, y, a:chat_msg])
+	call <SID>SendMulticastMsg('chat', [expand('%'), x, y, a:chat_msg])
 	call <SID>AddToChatHistory(expand("%"), x, y, getpid(), a:chat_msg, 0)
 endfunction
 
@@ -183,12 +183,13 @@ function! s:CursorMoved()
 	if mode != s:players[getpid()].mode || range != s:players[getpid()].range
 		let s:players[getpid()].mode = mode
 		let s:players[getpid()].range = range
-		call <SID>SendMulticastMsg('cursor', [mode] + range)
+		call <SID>SendMulticastMsg('cursor', [expand('%'), mode] + range)
 	endif
 endfunction
 
 
 function! s:TextChanged()
+	"echom "Text Changed"
 	let my_pid = getpid()
 
 	let s:bu2 = s:bu1
@@ -200,14 +201,14 @@ function! s:TextChanged()
 	call delete('/tmp/.bu1' . my_pid)
 	call delete('/tmp/.bu2' . my_pid)
 	if len(diff)
-		"echom 'I have changes'
-		call <SID>SendMulticastMsg('diff', diff)
+		"echom 'I have changes' . string(diff)
+		call <SID>SendMulticastMsg('diff', [expand('%')] + diff)
 	endif
 endfunction
 
 
 function! s:SendUnicastMsg(command, msg, recv_pid)
-	call writefile(extend([a:command, getpid(), expand("%"), len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . a:recv_pid)
+	call writefile(extend([a:command, getpid(), len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . a:recv_pid)
 endfunction
 
 function! s:SendMulticastMsg(command, msg)
@@ -223,7 +224,7 @@ endfunction
 
 function! s:MyHandlerOut(channel, msg)
 	call add(s:read_buffer, a:msg)
-	if len(s:read_buffer) > 3 && s:read_buffer[3] + 4 == len(s:read_buffer)
+	if len(s:read_buffer) > 2 && s:read_buffer[2] + 3 == len(s:read_buffer)
 		call <SID>ParseMsg(s:read_buffer)
 		let s:read_buffer = []
 	endif
@@ -232,17 +233,17 @@ endfunction
 function! s:ParseMsg(msg)
 	let command = a:msg[0]
 	let pid = a:msg[1]
-	let file = a:msg[2]
-	let msglen = a:msg[3]
-	let msg = a:msg[4:msglen + 4 - 1]
-	let rest = a:msg[msglen + 4:]
+	let msglen = a:msg[2]
+	let msg = a:msg[3:msglen + 3 - 1]
+	let rest = a:msg[msglen + 3:]
 	if command == 'cursor'
-		let mode = msg[0]
-		let x0 = msg[1]
-		let y0 = msg[2]
-		let x1 = msg[3]
-		let y1 = msg[4]
-		"echom "received cursor: " . mode . ' ' . x0 . ' ' . y0 . ' ' . x1 . ' ' . y1
+		let file = msg[0]
+		let mode = msg[1]
+		let x0 = msg[2]
+		let y0 = msg[3]
+		let x1 = msg[4]
+		let y1 = msg[5]
+		"echom "received cursor: " . file . " " . mode . ' ' . x0 . ' ' . y0 . ' ' . x1 . ' ' . y1
 		let files = [file]
 		if has_key(s:players, pid) && count(files, s:players[pid].file) == 0
 			call add(files, s:players[pid].file)
@@ -260,11 +261,11 @@ function! s:ParseMsg(msg)
 		"echom "I would like to send iam " . <SID>GetNameFromPid(getpid()) . " to " . pid
 		"echom "sending cursor" . string(s:players[getpid()].range)
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
-		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
+		call <SID>SendUnicastMsg('cursor', [expand('%'), s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'iam'
 		"echom "received iam: " . string(pid) . '-' . string(msg[0])
 		if !has_key(s:players, pid)
-			let s:players[pid] = {"name":msg[0],"file":file,"mode":"n","range":[1,1,1,1]}
+			let s:players[pid] = {"name":msg[0],"file":"","mode":"n","range":[1,1,1,1]}
 			if len(s:players) > 1
 				call <SID>MapAll()
 			endif
@@ -282,7 +283,8 @@ function! s:ParseMsg(msg)
 		let written_as = msg[0]
 		call <SID>BuffDo(written_as, { -> execute("edit!", "") })
 	elseif command == 'chat'
-		call <SID>AddToChatHistory(file, msg[0], msg[1], pid, msg[2], 1)
+		let file = msg[0]
+		call <SID>AddToChatHistory(file, msg[1], msg[2], pid, msg[3], 1)
 	elseif command == 'request_register'
 		let register = msg[1]
 		let operation = msg[0]
@@ -313,9 +315,11 @@ function! s:ParseMsg(msg)
 			call feedkeys(register_value)
 		endif
 	elseif command == 'diff'
-		"echom "diff" . string(msg)
+		let file = msg[0]
+		"echom "received changes" . string(msg[1:])
 		"let wv = winsaveview()
-		call <SID>BuffDo(file, { -> <SID>Patch(msg) })
+		call <SID>BuffDo(file, { -> <SID>Patch(msg[1:]) })
+		call <SID>Write()
 		"call winrestview(wv)
 	else
 		echom "Unknown command received: '" . command . "'"

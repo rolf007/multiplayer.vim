@@ -1,4 +1,3 @@
-succes_cmd="echom \"unittest succeded\""
 source "${BASH_SOURCE%/*}"/../setup.sh
 
 cat >>$vimtestdir/.vimrc <<EOL
@@ -6,6 +5,13 @@ EOL
 
 cat >>$vimtestdir/test.vim <<EOL
 
+let s:sid = matchlist(execute('scriptnames'), '\([0-9]\+\): [^ ]*autoload/multiplayer.vim')[1]
+
+function! SnrInvoke(expr)
+	execute("return <snr>" . s:sid . "_" . a:expr)
+endfunction
+
+"echom SnrInvoke("Test(14, 46)")
 let s:cur_debug_pid = 0
 
 function! s:DebugMove(delta)
@@ -56,11 +62,10 @@ function! s:getMsg(pid)
 	return ret
 endfunction
 
-function! s:mkMsg(command, buffer, msg)
-	return [a:command, string(getpid()), a:buffer, string(len(a:msg))] + a:msg
+function! s:mkMsg(command, msg)
+	return [a:command, string(getpid()), string(len(a:msg))] + a:msg
 endfunction
 
-call system('rm /tmp/vim_multi_player_pipe_100000*')
 sleep 200m
 
 MultiplayerConnect
@@ -71,18 +76,18 @@ sleep 200m
 call SendUnicastMsg("hello", my_pid, [])
 sleep 1200m
 
-call assert_equal(s:mkMsg('iam', "a.txt", ['noname']), s:getMsg(my_pid))
-call assert_equal(s:mkMsg('cursor', "a.txt", ['n', '1', '1', '1', '1']), s:getMsg(my_pid))
+call assert_equal(s:mkMsg('iam', ['noname']), s:getMsg(my_pid))
+call assert_equal(s:mkMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), s:getMsg(my_pid))
 call assert_equal(0, s:getMsg(my_pid))
 
 call SendUnicastMsg("iam", my_pid, ['Tester'])
 call SendCursor(my_pid)
-call SendUnicastMsg("diff", my_pid, ['1c1', '< ', '---', '> hello world'])
+call SendUnicastMsg("diff", my_pid, ['a.txt', '1c1', '< ', '---', '> hello world'])
 sleep 200m
 call assert_equal(0, s:getMsg(my_pid))
 
 call assert_equal(['hello world'], getline(1, '$'))
-call SendUnicastMsg("diff", my_pid, ['1a2,3', "> \<TAB>12345\<TAB>123", '> 123456789'])
+call SendUnicastMsg("diff", my_pid, ['a.txt', '1a2,3', "> \<TAB>12345\<TAB>123", '> 123456789'])
 sleep 200m
 call assert_equal(['hello world', "\<TAB>12345\<TAB>123", '123456789'], getline(1, '$'))
 

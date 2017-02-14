@@ -1,5 +1,6 @@
+export succes_cmd="qall!"
+export sleep_cmd="redraw"
 
-cd tests
-for test in test*.sh; do
-	./$test
+for test in "${BASH_SOURCE%/*}"/tests/test*.sh; do
+	$test
 done

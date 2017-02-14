@@ -67,8 +67,8 @@ if !exists('g:multiplayer_chat_destination')
 	let g:multiplayer_chat_destination = 'cmC'
 endif
 
-command -nargs=0 MultiplayerConnect call multiplayer#Connect()
-command -nargs=0 MultiplayerConfigure call multiplayer#Configure()
+command! -nargs=0 MultiplayerConnect call multiplayer#Connect()
+command! -nargs=0 MultiplayerConfigure call multiplayer#Configure()
 
 if g:multiplayer_auto_connect == 'y'
 	call multiplayer#Connect()

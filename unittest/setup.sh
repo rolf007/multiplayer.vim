@@ -3,7 +3,8 @@ mkdir $vimtestdir/.vim
 cp -r ~/.vim/bundle/multiplayer.vim/* $vimtestdir/.vim
 rm -f $vimtestdir/.vim/profile*
 
-succes_cmd="${succes_cmd:-qall!}"
+succes_cmd=${succes_cmd:-"echom \"unittest succeded\""}
+sleep_cmd=${sleep_cmd:-"redraw | sleep 2000m"}
 
 cat >$vimtestdir/.vimrc <<EOL
 syntax on
@@ -36,16 +37,16 @@ let g:players = {}
 let s:next_debug_pid = 1000001
 
 function! SendUnicastMsg(command, from_pid, msg)
-	call writefile(extend([a:command, a:from_pid, g:players[a:from_pid].file, len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . getpid())
+	call writefile(extend([a:command, a:from_pid, len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . getpid())
 endfunction
 
 function! SendCursor(from_pid)
-	call SendUnicastMsg('cursor', a:from_pid, [g:players[a:from_pid].mode] + g:players[a:from_pid].range)
+	call SendUnicastMsg('cursor', a:from_pid, [g:players[a:from_pid].file, g:players[a:from_pid].mode] + g:players[a:from_pid].range)
 endfunction
 
 function! s:MyHandlerOut(channel, msg, pid)
 	call add(g:players[a:pid].read_buffer, a:msg)
-	if len(g:players[a:pid].read_buffer) > 3 && g:players[a:pid].read_buffer[3] + 4 == len(g:players[a:pid].read_buffer)
+	if len(g:players[a:pid].read_buffer) > 2 && g:players[a:pid].read_buffer[2] + 3 == len(g:players[a:pid].read_buffer)
 		call add(g:players[a:pid].msgs, g:players[a:pid].read_buffer)
 		let g:players[a:pid].read_buffer = []
 	endif

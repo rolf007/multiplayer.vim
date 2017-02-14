@@ -1,4 +1,3 @@
-#succes_cmd="echom \"unittest succeded\""
 source "${BASH_SOURCE%/*}"/../setup.sh
 
 cat >>$vimtestdir/.vimrc <<EOL
@@ -13,7 +12,7 @@ let my_pid = CreatePlayer()
 sleep 200m
 call SendUnicastMsg("hello", my_pid, [])
 sleep 200m
-call SendUnicastMsg("diff", my_pid, ['0a1', '> hello world'])
+call SendUnicastMsg("diff", my_pid, ['a.txt', '0a1', '> hello world'])
 sleep 200m
 call assert_equal("hello world", getline(1))
 
