@@ -311,6 +311,8 @@ function! s:ParseMsg(msg)
 			call setreg('a', register_value, register_type)
 			silent execute "normal! \"a" . operation
 			let @a = a
+		elseif operation == '/' || operation == '?' || operation == ':'
+			call feedkeys(operation . register_value)
 		elseif operation == 'c'
 			call feedkeys(register_value)
 		endif
@@ -418,15 +420,15 @@ function! s:MapAll()
 	if g:multiplayer_nmap_leader != ''
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "p :call <SID>Put(v:register, 'p')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "P :call <SID>Put(v:register, 'P')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "/ /<C-R>=<SID>Put('/', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "? ?<C-R>=<SID>Put('/', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "* /<C-R>=<SID>Put('B', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "# ?<C-R>=<SID>Put('B', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g* /<C-R>=<SID>Put('A', 'c')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g# ?<C-R>=<SID>Put('A', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "/ :call <SID>Put('/', '/')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "? :call <SID>Put('/', '?')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "* :call <SID>Put('B', '/')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "# :call <SID>Put('B', '?')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g* :call <SID>Put('A', '/')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g# :call <SID>Put('A', '?')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q/ :echom \"<l>q/ not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q? :echom \"<l>q? not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . ": :<C-R>=<SID>Put(':', 'c')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . ": :call <SID>Put(':', ':')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q: :echom \"<l>q: not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g. :call <SID>GoToPlayer()<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
