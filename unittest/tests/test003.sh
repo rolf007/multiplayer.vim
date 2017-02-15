@@ -101,6 +101,14 @@ call SendUnicastMsg('reply_register', pid_jester, ['P', 'tester', 'v'])
 sleep 200m
 call assert_equal(['line-putted-before', 'AjestetesterrxBCDline-putted-after', 'EyFGH123databeef456', 'IzJKL'], getline(1, '$'))
 
+"======= OTHER SIDE =======
+
+let @a = 'a word'
+call SendUnicastMsg('request_register', pid_jester, ['P', 'a'])
+sleep 200m
+call assert_equal(ExpectedMsg('reply_register', ['P', 'a word', 'v']), GetMsg(pid_jester))
+call assert_equal(0, GetMsg(pid_jester))
+
 EOL
 
 HOME=$vimtestdir vim -X a.txt

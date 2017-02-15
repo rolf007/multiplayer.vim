@@ -19,18 +19,36 @@ sleep 200m
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), GetMsg(my_pid))
 
-execute "normal! i123456789\<esc>hhhhh"
+execute "normal! i1234567896611\<esc>0"
 
-"put 'before' from default register
+"search forwards for remote search register
 execute "normal m/"
 sleep 200m
 call assert_equal(ExpectedMsg('request_register', ['/', '/']), GetMsg(my_pid))
 call SendUnicastMsg('reply_register', my_pid, ['/', '6', 'v'])
 sleep 200m
 call feedkeys("\<CR>", 'x')
-sleep 200m
 call assert_equal('6', getreg('/'))
 call assert_equal(6, getpos('.')[2])
+
+"search backwards for remote search register
+execute "normal m?"
+sleep 200m
+call assert_equal(ExpectedMsg('request_register', ['?', '/']), GetMsg(my_pid))
+call assert_equal(0, GetMsg(my_pid))
+call SendUnicastMsg('reply_register', my_pid, ['?', '1', 'v'])
+sleep 200m
+call feedkeys("\<CR>", 'x')
+call assert_equal('1', getreg('/'))
+call assert_equal(1, getpos('.')[2])
+
+"======= OTHER SIDE =======
+
+"remote searches forward for word nearest to cursor. whole word. (star)
+execute "normal! ccword1 word2 word3\<esc>0wl"
+call SendUnicastMsg('request_register', my_pid, ['/', 'B'])
+sleep 200m
+call assert_equal(ExpectedMsg('reply_register', ['/', '\\<word2\\>', 'v']), GetMsg(my_pid))
 
 EOL
 
