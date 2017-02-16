@@ -110,6 +110,7 @@ endfunction
 
 function! s:Let(key_value)
 	if a:key_value == ''
+		"list all values:
 		for key in keys(s:player_profile)
 			call s:Let(key)
 		endfor
@@ -117,6 +118,7 @@ function! s:Let(key_value)
 	endif
 	let spl = split(a:key_value, '=')
 	if len(spl) == 1
+		"list one values:
 		if has_key(s:player_profile, a:key_value)
 			if len(a:key_value) < 20
 				let alignment = repeat(" ", 20 - len(a:key_value))
@@ -129,6 +131,7 @@ function! s:Let(key_value)
 		endif
 		return
 	endif
+	"assign one values:
 	let key = spl[0]
 	let value = join(spl[1:], '=')
 	execute "let " . key . "=" . value
@@ -288,17 +291,20 @@ function! s:ParseMsg(msg)
 	elseif command == 'request_register'
 		let register = msg[1]
 		let operation = msg[0]
+		"echom "received request_register: reg ='" . register . "', operation = '" . operation . "', from '" . pid
 		if register == 'A' || register == 'B'
 			let register_value = escape(expand("<cword>"), '/$.*\{[^')
 			if register == 'B' && match(register_value, "\\k") != -1
 				let register_value = '\<' . register_value . '\>'
 			endif
 			let register_type = 'v'
+		elseif register == 'q/' || register == 'q?' || register == 'q:'
+			let register_value = join([histget('/', -3), histget('/', -2), histget('/', -1)], " ")
+			let register_type = 'v'
 		else
 			let register_value = getreg(register)
 			let register_type = getregtype(register)
 		endif
-		"echom "received request_register: reg ='" . register . "', operation = '" . operation . "', from '" . pid
 		"echom "replying: " . ' ' . operation . register_value . ' to ' . pid
 		call <SID>SendUnicastMsg('reply_register', [operation, register_value, register_type], pid)
 	elseif command == 'reply_register'
@@ -313,6 +319,11 @@ function! s:ParseMsg(msg)
 			let @a = a
 		elseif operation == '/' || operation == '?' || operation == ':'
 			call feedkeys(operation . register_value)
+		elseif operation == 'q/' || operation == 'q?' || operation == 'q:'
+			for h in split(register_value, "\n")
+				call histadd(operation[1], h)
+			endfor
+			call feedkeys(operation)
 		elseif operation == 'c'
 			call feedkeys(register_value)
 		endif
@@ -426,10 +437,10 @@ function! s:MapAll()
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "# :call <SID>Put('B', '?')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g* :call <SID>Put('A', '/')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g# :call <SID>Put('A', '?')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q/ :echom \"<l>q/ not implemented yet\"<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q? :echom \"<l>q? not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q/ :call <SID>Put('q/', 'q/')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q? :call <SID>Put('q/', 'q?')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . ": :call <SID>Put(':', ':')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q: :echom \"<l>q: not implemented yet\"<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q: :call <SID>Put('q:', 'q:')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g. :call <SID>GoToPlayer()<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "gv :echom \"<l>gv not implemented yet\"<CR>"
