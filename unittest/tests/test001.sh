@@ -74,8 +74,8 @@ call SendCursor(my_pid)
 call SendUnicastMsg("diff", my_pid, ['a.txt', '1c1', '< ', '---', '> hello world'])
 sleep 200m
 call assert_equal(0, GetMsg(my_pid))
-
 call assert_equal(['hello world'], getline(1, '$'))
+
 call SendUnicastMsg("diff", my_pid, ['a.txt', '1a2,3', "> \<TAB>12345\<TAB>123", '> 123456789'])
 sleep 200m
 call assert_equal(['hello world', "\<TAB>12345\<TAB>123", '123456789'], getline(1, '$'))
@@ -87,6 +87,14 @@ let m = getmatches()
 call assert_equal(1, len(m))
 call assert_equal('MPCol2', m[0].group)
 call assert_equal('\%>5v\%<7v\%2l', m[0].pattern)
+call assert_equal(0, GetMsg(my_pid))
+
+"======= OTHER SIDE =======
+
+execute("normal! dd")
+call SnrInvoke("TextChanged()")
+sleep 200m
+call assert_equal(ExpectedMsg('diff', ['a.txt', '1d0', '< hello world']), GetMsg(my_pid))
 call assert_equal(0, GetMsg(my_pid))
 
 EOL
