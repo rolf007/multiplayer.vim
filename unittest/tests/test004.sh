@@ -47,7 +47,7 @@ call assert_equal(1, getpos('.')[2])
 "remote searches forward for word nearest to cursor. whole word. (star)
 execute "normal! ccword1 word2 word3\<esc>0wl"
 call SendUnicastMsg('request_register', my_pid, ['/', 'B'])
-sleep 200m
+sleep 2000m
 call assert_equal(ExpectedMsg('reply_register', ['/', '\\<word2\\>', 'v']), GetMsg(my_pid))
 
 EOL

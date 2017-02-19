@@ -291,22 +291,25 @@ function! s:ParseMsg(msg)
 	elseif command == 'request_register'
 		let register = msg[1]
 		let operation = msg[0]
-		"echom "received request_register: reg ='" . register . "', operation = '" . operation . "', from '" . pid
+		echom "received request_register: reg ='" . register . "', operation = '" . operation . "', from '" . pid
 		if register == 'A' || register == 'B'
 			let register_value = escape(expand("<cword>"), '/$.*\{[^')
 			if register == 'B' && match(register_value, "\\k") != -1
 				let register_value = '\<' . register_value . '\>'
 			endif
 			let register_type = 'v'
+			echom "replying: " . ' ' . operation . register_value . ' to ' . pid
+			call <SID>SendUnicastMsg('reply_register', [operation, register_value, register_type], pid)
 		elseif register == 'q/' || register == 'q?' || register == 'q:'
-			let register_value = join([histget('/', -3), histget('/', -2), histget('/', -1)], " ")
-			let register_type = 'v'
+			let history = [histget('/', -3), histget('/', -2), histget('/', -1)]
+			"echom "replying history: " . ' ' . string([operation] + history) . ' to ' . pid
+			call <SID>SendUnicastMsg('reply_history', [operation] + history, pid)
 		else
 			let register_value = getreg(register)
 			let register_type = getregtype(register)
+			"echom "replying: " . ' ' . operation . register_value . ' to ' . pid
+			call <SID>SendUnicastMsg('reply_register', [operation, register_value, register_type], pid)
 		endif
-		"echom "replying: " . ' ' . operation . register_value . ' to ' . pid
-		call <SID>SendUnicastMsg('reply_register', [operation, register_value, register_type], pid)
 	elseif command == 'reply_register'
 		let operation = msg[0]
 		let register_value = msg[1]
@@ -319,14 +322,21 @@ function! s:ParseMsg(msg)
 			let @a = a
 		elseif operation == '/' || operation == '?' || operation == ':'
 			call feedkeys(operation . register_value)
-		elseif operation == 'q/' || operation == 'q?' || operation == 'q:'
-			for h in split(register_value, "\n")
-				call histadd(operation[1], h)
-			endfor
-			call feedkeys(operation)
 		elseif operation == 'c'
 			call feedkeys(register_value)
 		endif
+	elseif command == 'reply_history'
+		let operation = msg[0]
+		let history = msg[1:]
+		"echom "received reply_history: operation ='" . operation . "', history = '" . string(history) . "', from '" . pid
+		for h in history
+			call histadd(operation[1], h)
+		endfor
+		call feedkeys(operation)
+		augroup CmdwinLeaveAuGroup
+			autocmd!
+			execute "autocmd CmdwinLeave * call <SID>CmdWinLeave('" . operation[1] . "')"
+		augroup END
 	elseif command == 'diff'
 		let file = msg[0]
 		"echom "received changes" . string(msg[1:])
@@ -340,6 +350,15 @@ function! s:ParseMsg(msg)
 	if len(rest) > 0
 		call <SID>ParseMsg(rest)
 	endif
+endfunction
+
+function s:CmdWinLeave(hist)
+	call histdel(a:hist, -1)
+	call histdel(a:hist, -1)
+	call histdel(a:hist, -1)
+	augroup CmdwinLeaveAuGroup
+		autocmd!
+	augroup END
 endfunction
 
 function! s:Patch(patch)
