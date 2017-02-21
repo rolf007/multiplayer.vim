@@ -19,8 +19,8 @@ call assert_equal(['123456'], getline(1, '$'))
 let pid_tester = CreatePlayer()
 sleep 200m
 call SendUnicastMsg("hello", pid_tester, [])
-call SendUnicastMsg("iam", pid_tester, ['Tester'])
-sleep 200m
+sleep 1200m
+call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), GetMsg(pid_tester))
 
@@ -78,8 +78,8 @@ call assert_equal(['line-putted-before', 'AxBCDline-putted-after', 'EyFGH123data
 let pid_jester = CreatePlayer()
 sleep 200m
 call SendUnicastMsg("hello", pid_jester, [])
-call SendUnicastMsg("iam", pid_jester, ['Jester'])
-sleep 200m
+sleep 1200m
+call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), GetMsg(pid_jester))
 
@@ -105,7 +105,7 @@ call assert_equal(['line-putted-before', 'AjestetesterrxBCDline-putted-after', '
 
 let @a = 'a word'
 call SendUnicastMsg('request_register', pid_jester, ['P', 'a'])
-sleep 200m
+sleep 1200m
 call assert_equal(ExpectedMsg('reply_register', ['P', 'a word', 'v']), GetMsg(pid_jester))
 call assert_equal(0, GetMsg(pid_jester))
 

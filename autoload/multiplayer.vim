@@ -28,12 +28,12 @@ function! multiplayer#StatusLine()
 endfunction
 
 function! multiplayer#Connect()
-	let s:players[getpid()] = {"name":g:multiplayer_name, "file":"", "mode":"n", "range":[0,0,0,0]}
+	let s:players[getpid()] = {"name": g:multiplayer_name, "file": "", "mode": "n", "range": [1,1,1,1]}
 	command -nargs=1 MultiplayerChat call <SID>Chat("<args>")
 	command -nargs=? MultiplayerLet call <SID>Let("<args>")
 	command -nargs=0 MultiplayerDisconnect call <SID>Disconnect()
+	command -nargs=0 MultiplayerConfigure call <SID>Configure()
 	delcommand MultiplayerConnect
-	delcommand MultiplayerConfigure
 	augroup MultiplayerAuGroup
 		autocmd!
 		autocmd VimLeave * call <SID>Disconnect()
@@ -51,8 +51,8 @@ function! multiplayer#Connect()
 	sleep 100m " make sure sleep keeps the cat alive
 	call job_start('cat /tmp/vim_multi_player_pipe_' . my_pid, {"out_cb": function("s:MyHandlerOut")})
 	call <SID>SendMulticastMsg('hello', [])
-	call <SID>SendMulticastMsg('iam', [<SID>GetNameFromPid(getpid())])
 	call <SID>CursorMoved()
+	call <SID>MapAll()
 endfunction
 
 
@@ -134,11 +134,19 @@ function! s:Let(key_value)
 	"assign one values:
 	let key = spl[0]
 	let value = join(spl[1:], '=')
+	let do_remap = count(['g:multiplayer_nmap_leader', 'g:multiplayer_cmap_leader', 'g:multiplayer_imap_leader', 'g:multiplayer_chat_mapping'], key)
+	if do_remap | call <SID>UnmapAll() | endif
 	execute "let " . key . "=" . value
+	if do_remap | call <SID>MapAll() | endif
+	if key == 'g:multiplayer_name'
+		execute "let s:players[getpid()].name = " . value
+		call <SID>SendMulticastMsg('iam', [<SID>GetNameFromPid(getpid())])
+		redrawstatus
+	endif
 	let s:player_profile[key] = value
 endfunction
 
-function! multiplayer#Configure()
+function! s:Configure()
 	let name = input("Enter your name:", g:multiplayer_name)
 	call <SID>Let("g:multiplayer_name='" . name . "'")
 
@@ -162,6 +170,7 @@ function! multiplayer#Configure()
 endfunction
 
 function! s:Disconnect()
+	call <SID>UnmapAll()
 	call <SID>SendMulticastMsg('byebye', [])
 	let my_pid = getpid()
 	call system('rm /tmp/vim_multi_player_pipe_' . my_pid)
@@ -173,8 +182,8 @@ function! s:Disconnect()
 	endif
 	call job_stop(s:sleep_job)
 	command -nargs=0 MultiplayerConnect call multiplayer#Connect()
-	command -nargs=0 MultiplayerConfigure call multiplayer#Configure()
 	delcommand MultiplayerDisconnect
+	delcommand MultiplayerConfigure
 	delcommand MultiplayerChat
 	delcommand MultiplayerLet
 	let s:players = {}
@@ -263,23 +272,22 @@ function! s:ParseMsg(msg)
 		"echom "received hello: " . string(pid)
 		"echom "I would like to send iam " . <SID>GetNameFromPid(getpid()) . " to " . pid
 		"echom "sending cursor" . string(s:players[getpid()].range)
+		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
+		call <SID>SendUnicastMsg('hello_reply', [], pid)
+		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
+		call <SID>SendUnicastMsg('cursor', [expand('%'), s:players[getpid()].mode] + s:players[getpid()].range, pid)
+	elseif command == 'hello_reply'
+		"echom "received hello_reply: " . string(pid)
+		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
 		call <SID>SendUnicastMsg('cursor', [expand('%'), s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'iam'
 		"echom "received iam: " . string(pid) . '-' . string(msg[0])
-		if !has_key(s:players, pid)
-			let s:players[pid] = {"name":msg[0],"file":"","mode":"n","range":[1,1,1,1]}
-			if len(s:players) > 1
-				call <SID>MapAll()
-			endif
-		endif
+		let s:players[pid].name = msg[0]
 		redrawstatus
 	elseif command == 'byebye'
 		let byefile = s:players[pid].file
 		unlet s:players[pid]
-		if len(s:players) <= 1
-			call <SID>UnmapAll()
-		endif
 		call <SID>DrawCursors([byefile])
 		redrawstatus
 	elseif command == 'written'
@@ -291,14 +299,14 @@ function! s:ParseMsg(msg)
 	elseif command == 'request_register'
 		let register = msg[1]
 		let operation = msg[0]
-		echom "received request_register: reg ='" . register . "', operation = '" . operation . "', from '" . pid
+		"echom "received request_register: reg ='" . register . "', operation = '" . operation . "', from '" . pid
 		if register == 'A' || register == 'B'
 			let register_value = escape(expand("<cword>"), '/$.*\{[^')
 			if register == 'B' && match(register_value, "\\k") != -1
 				let register_value = '\<' . register_value . '\>'
 			endif
 			let register_type = 'v'
-			echom "replying: " . ' ' . operation . register_value . ' to ' . pid
+			"echom "replying: " . ' ' . operation . register_value . ' to ' . pid
 			call <SID>SendUnicastMsg('reply_register', [operation, register_value, register_type], pid)
 		elseif register == 'q/' || register == 'q?' || register == 'q:'
 			let history = [histget('/', -3), histget('/', -2), histget('/', -1)]

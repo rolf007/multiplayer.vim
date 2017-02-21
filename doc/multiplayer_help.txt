@@ -97,7 +97,7 @@ OPTIONS                                                    *multiplayer-options*
     default: "cmC"
 
 The options are typically set in your .vimrc. If a player wants a different
-configuration, then he should use :MultiplayerConfigure
+configuration, then he should use :MultiplayerConfigure or :MultiplayerLet
 
 ==============================================================================
 COMMANDS                                                  *multiplayer-commands*
@@ -128,7 +128,7 @@ COMMANDS                                                  *multiplayer-commands*
     :MultiplayerLet
 <
 :MultiplayerConfigure
-    Go through configuration step-by-step. (You must be disconnected)
+    Go through configuration step-by-step. (You must be connected)
 
 ==============================================================================
 STATUSLINE                                              *multiplayer-statusline*

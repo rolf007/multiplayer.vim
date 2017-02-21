@@ -13,9 +13,9 @@ sleep 200m
 let my_pid = CreatePlayer()
 sleep 200m
 call SendUnicastMsg("hello", my_pid, [])
-call SendUnicastMsg("iam", my_pid, ['Tester'])
-sleep 200m
+sleep 1200m
 
+call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), GetMsg(my_pid))
 
@@ -37,9 +37,9 @@ sleep 200m
 let my_pid = CreatePlayer()
 sleep 200m
 call SendUnicastMsg("hello", my_pid, [])
-call SendUnicastMsg("iam", my_pid, ['Tester'])
-sleep 200m
+sleep 1200m
 
+call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', '1', '1', '1', '1']), GetMsg(my_pid))
 
