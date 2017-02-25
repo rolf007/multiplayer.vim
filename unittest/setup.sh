@@ -1,14 +1,13 @@
+ROOT=$PWD
 vimtestdir=$(mktemp -d)
 mkdir $vimtestdir/.vim
 cp -r ~/.vim/bundle/multiplayer.vim/* $vimtestdir/.vim
 rm -f $vimtestdir/.vim/profile*
 
 succes_cmd=${succes_cmd:-"echom \"unittest succeded\""}
-sleep_cmd=${sleep_cmd:-"redraw | sleep 2000m"}
 
 cat >$vimtestdir/.vimrc <<EOL
 syntax on
-"call timer_start(1000, {-> feedkeys('  ')})
 function! WinId()
 	if exists('*win_getid')
 		return "b=" . bufnr('%') . " w=" . win_getid() . " " . getpid()
@@ -19,8 +18,8 @@ set laststatus=2
 set statusline=
 set statusline +=%1*[%{WinId()}]\ %*          "buffer number (and winid)
 set statusline +=%4*\ %t%*            "filename
-set statusline +=%2*%m%r%w%*          "modified flag, read only, 
-set statusline +=\ UNITTESTING\ 
+set statusline +=%2*%m%r%w%*          "modified flag, read only,
+set statusline +=\ UNITTESTING\ $0
 set statusline +=%=
 let &statusline .= multiplayer#StatusLine()
 set statusline +=%1*line:\ %l%*     "current line
@@ -30,53 +29,29 @@ set errorformat=%f\ line\ %l:\ %m
 nnoremap q :qall!<CR>
 set tabstop=4
 
-"call timer_start(5000, {-> feedkeys("ihej\<ESC>")})
 call timer_start(500, {-> <SID>Test()})
 
-let g:players = {}
+let g:test_players = {}
 let s:next_debug_pid = 1000001
 
-function! SendUnicastMsg(command, from_pid, msg)
-	call writefile(extend([a:command, a:from_pid, len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . getpid())
-endfunction
-
-function! SendCursor(from_pid)
-	call SendUnicastMsg('cursor', a:from_pid, [g:players[a:from_pid].file, g:players[a:from_pid].mode] + g:players[a:from_pid].range)
-endfunction
-
-function! s:MyHandlerOut(channel, msg, pid)
-	call add(g:players[a:pid].read_buffer, a:msg)
-	if len(g:players[a:pid].read_buffer) > 2 && g:players[a:pid].read_buffer[2] + 3 == len(g:players[a:pid].read_buffer)
-		call add(g:players[a:pid].msgs, g:players[a:pid].read_buffer)
-		let g:players[a:pid].read_buffer = []
-	endif
-endfunction
-
-function! CreatePlayer()
+function! CreateTestPlayer()
 	let pid = s:next_debug_pid
 	let s:next_debug_pid = s:next_debug_pid + 1
-	let g:players[pid] = {}
-	let g:players[pid].read_buffer = []
-	let g:players[pid].msgs = []
-	let g:players[pid].file = "a.txt"
-	let g:players[pid].mode = "n"
-	let g:players[pid].range = [1,1,1,1]
-	call system('mkfifo /tmp/vim_multi_player_pipe_' . pid)
-	call system('sleep infinity > /tmp/vim_multi_player_pipe_' . pid . ' &')
-	let job = job_start('cat /tmp/vim_multi_player_pipe_' . pid, {"out_cb": { channel, msg -> call('s:MyHandlerOut', [channel, msg, pid])}})
+	let g:test_players[pid] = {}
+	let g:test_players[pid].msgs = []
 	return pid
 endfunction
 
 function! ExpectedMsg(command, msg)
-	return [a:command, string(getpid()), string(len(a:msg))] + a:msg
+	return [a:command, getpid(), len(a:msg)] + a:msg
 endfunction
 
 function! GetMsg(pid)
-	if len(g:players[a:pid].msgs) == 0
+	if len(g:test_players[a:pid].msgs) == 0
 		return 0
 	endif
-	let ret = g:players[a:pid].msgs[0]
-	let g:players[a:pid].msgs = g:players[a:pid].msgs[1:]
+	let ret = g:test_players[a:pid].msgs[0]
+	let g:test_players[a:pid].msgs = g:test_players[a:pid].msgs[1:]
 	return ret
 endfunction
 

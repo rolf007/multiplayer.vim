@@ -50,7 +50,7 @@ function! multiplayer#Connect()
 	let s:sleep_job = job_start(['/bin/sh', '-c', 'sleep infinity > /tmp/vim_multi_player_pipe_' . my_pid])
 	sleep 100m " make sure sleep keeps the cat alive
 	call job_start('cat /tmp/vim_multi_player_pipe_' . my_pid, {"out_cb": function("s:MyHandlerOut")})
-	call <SID>SendMulticastMsg('hello', [])
+	call <SID>SendBroadcastMsg('hello', [])
 	call <SID>CursorMoved()
 	call <SID>MapAll()
 endfunction
@@ -220,11 +220,19 @@ endfunction
 
 
 function! s:SendUnicastMsg(command, msg, recv_pid)
-	call writefile(extend([a:command, getpid(), len(a:msg)], a:msg), "/tmp/vim_multi_player_pipe_" . a:recv_pid)
+	call writefile([string([a:command, getpid(), len(a:msg)] + a:msg)], "/tmp/vim_multi_player_pipe_" . a:recv_pid)
 endfunction
 
 function! s:SendMulticastMsg(command, msg)
-	let the_others = []
+	let my_pid = getpid()
+	for pid in keys(s:players)
+		if pid != my_pid
+			call <SID>SendUnicastMsg(a:command, a:msg, pid)
+		endif
+	endfor
+endfunction
+
+function! s:SendBroadcastMsg(command, msg)
 	let all_pipes = split(globpath('/tmp', 'vim_multi_player_pipe_*'), '\n')
 	for pipe in all_pipes
 		let mtch = matchlist(pipe, '.*vim_multi_player_pipe_\(.*\)')
@@ -235,11 +243,8 @@ function! s:SendMulticastMsg(command, msg)
 endfunction
 
 function! s:MyHandlerOut(channel, msg)
-	call add(s:read_buffer, a:msg)
-	if len(s:read_buffer) > 2 && s:read_buffer[2] + 3 == len(s:read_buffer)
-		call <SID>ParseMsg(s:read_buffer)
-		let s:read_buffer = []
-	endif
+	execute "let m = " . a:msg
+	call <SID>ParseMsg(m)
 endfunction
 
 function! s:ParseMsg(msg)
