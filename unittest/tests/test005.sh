@@ -18,6 +18,13 @@ call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', 1, 1, 1, 1]), GetMsg(my_pid))
 
 echom "First instance"
+MultiplayerLet &ts=12
+call assert_notequal("\n\nNo mapping found", execute("nmap mp"))
+MultiplayerLet g:multiplayer_nmap_leader='<F5>'
+MultiplayerLet g:multiplayer_imap_leader='<F6>'
+call assert_equal("\n\nNo mapping found", execute("nmap mp"))
+call assert_notequal("\n\nNo mapping found", execute("nmap <F5>p"))
+call assert_notequal("\n\nNo mapping found", execute("imap <F6><C-R>"))
 
 EOL
 
@@ -37,6 +44,11 @@ call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', 1, 1, 1, 1]), GetMsg(my_pid))
 
 echom "Second instance"
+call assert_equal(12, &ts)
+
+call assert_equal("\n\nNo mapping found", execute("nmap mp"))
+call assert_notequal("\n\nNo mapping found", execute("nmap <F5>p"))
+call assert_notequal("\n\nNo mapping found", execute("imap <F6><C-R>"))
 
 EOL
 
