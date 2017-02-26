@@ -1,6 +1,6 @@
 source "${BASH_SOURCE%/*}"/../setup.sh
 source $ROOT/"${BASH_SOURCE%/*}"/../inject.sh
-#Playig around with split
+#Playing around with split
 
 cat >>$vimtestdir/.vimrc <<EOL
 EOL
@@ -29,7 +29,9 @@ function! s:DebugSetCur(pid)
 		call SendToDut('iam', s:cur_debug_pid, ["debug".(s:cur_debug_pid-1000000)])
 	endif
 	let s:cur_debug_pid = a:pid
-	call SendToDut('iam', s:cur_debug_pid, ["*debug".(s:cur_debug_pid-1000000)."*"])
+	if s:cur_debug_pid != 0
+		call SendToDut('iam', s:cur_debug_pid, ["*debug".(s:cur_debug_pid-1000000)."*"])
+	endif
 endfunction
 
 function! s:DebugConnect()
@@ -66,16 +68,27 @@ function! s:DebugPrev()
 endfunction
 
 function! s:DebugDisconnect()
+	if s:cur_debug_pid == 0
+		return
+	endif
+	let prev = s:cur_debug_pid
+	let nxt = 0
+	unlet g:test_players[prev]
+	if len(keys(g:test_players)) != 0
+		let nxt = keys(g:test_players)[0]
+	endif
+	call <SID>DebugSetCur(nxt)
+	call SendToDut('byebye', prev, [])
 endfunction
 
-nnoremap mc :<C-U>call <SID>DebugConnect()<CR>
-nnoremap md :<C-U>call <SID>DebugDisconnect()<CR>
-nnoremap mn :call <SID>DebugNext()<CR>
-nnoremap mp :call <SID>DebugPrev()<CR>
-nnoremap <C-Up> :call <SID>DebugMove([0,-1])<CR>
-nnoremap <C-Down> :call <SID>DebugMove([0,1])<CR>
-nnoremap <C-Left> :call <SID>DebugMove([-1,0])<CR>
-nnoremap <C-Right> :call <SID>DebugMove([1,0])<CR>
+nnoremap <silent> mc :<C-U>call <SID>DebugConnect()<CR>
+nnoremap <silent> md :<C-U>call <SID>DebugDisconnect()<CR>
+nnoremap <silent> mn :call <SID>DebugNext()<CR>
+nnoremap <silent> mp :call <SID>DebugPrev()<CR>
+nnoremap <silent> <C-Up> :call <SID>DebugMove([0,-1])<CR>
+nnoremap <silent> <C-Down> :call <SID>DebugMove([0,1])<CR>
+nnoremap <silent> <C-Left> :call <SID>DebugMove([-1,0])<CR>
+nnoremap <silent> <C-Right> :call <SID>DebugMove([1,0])<CR>
 
 execute("normal! i123\<CR>\<ESC>")
 execute("normal! i456\<CR>\<ESC>")

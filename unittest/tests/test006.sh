@@ -4,7 +4,9 @@ source $ROOT/"${BASH_SOURCE%/*}"/../inject.sh
 
 cat >>$vimtestdir/.vimrc <<EOL
 let g:multiplayer_nmap_leader = 'm'
-nunmap q
+nnoremap q: q:
+nnoremap q/ q/
+nnoremap q? q?
 EOL
 
 cat >>$vimtestdir/test.vim <<EOL
