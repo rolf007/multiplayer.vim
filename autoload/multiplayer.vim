@@ -33,6 +33,7 @@ function! multiplayer#Connect()
 	command -nargs=? MultiplayerLet call <SID>Let("<args>")
 	command -nargs=0 MultiplayerDisconnect call <SID>Disconnect()
 	command -nargs=0 MultiplayerConfigure call <SID>Configure()
+	command -nargs=0 MultiplayerWhere call <SID>Where()
 	delcommand MultiplayerConnect
 	augroup MultiplayerAuGroup
 		autocmd!
@@ -41,10 +42,10 @@ function! multiplayer#Connect()
 		autocmd TextChangedI * call <SID>TextChanged()
 		autocmd CursorMoved * call <SID>CursorMoved()
 		autocmd CursorMovedI * call <SID>CursorMoved()
-		autocmd BufEnter * call <SID>Write()
+		autocmd BufEnter * call <SID>BufEnter()
 		autocmd BufWritePost * call <SID>BufWritePost()
 	augroup END
-	call <SID>Write()
+	call <SID>BufEnter()
 	let my_pid = getpid()
 	call system('mkfifo /tmp/vim_multi_player_pipe_' . my_pid)
 	let s:sleep_job = job_start(['/bin/sh', '-c', 'sleep infinity > /tmp/vim_multi_player_pipe_' . my_pid])
@@ -93,19 +94,24 @@ function! MultiplayerName(n)
 		return <SID>GetFullNameFromPid(players[a:n])
 endfunction
 
+function! s:BufEnter()
+	let s:players[getpid()].file = expand('%:p')
+	call <SID>Write()
+endfunction
+
 function! s:Write()
 	let s:bu1 = getline(1,'$')
 endfunction
 
 function! s:BufWritePost()
-	call <SID>SendMulticastMsg('written', [expand('<afile>')])
+	call <SID>SendMulticastMsg('written', [expand('<afile>:p')])
 endfunction
 
 function! s:Chat(chat_msg)
 	let x = getpos(".")[2]
 	let y = getpos(".")[1]
-	call <SID>SendMulticastMsg('chat', [expand('%'), x, y, a:chat_msg])
-	call <SID>AddToChatHistory(expand("%"), x, y, getpid(), a:chat_msg, 0)
+	call <SID>SendMulticastMsg('chat', [s:players[getpid()].file, x, y, a:chat_msg])
+	call <SID>AddToChatHistory(s:players[getpid()].file, x, y, getpid(), a:chat_msg, 0)
 endfunction
 
 function! s:Let(key_value)
@@ -169,6 +175,12 @@ function! s:Configure()
 	call <SID>Let("g:multiplayer_chat_destination='" . chat_dest . "'")
 endfunction
 
+function! s:Where()
+	for [pid, player] in items(s:players)
+		echo pid . ' ' . player.file . ':' . player.range[1] . ',' . player.range[0]
+	endfor
+endfunction
+
 function! s:Disconnect()
 	call <SID>UnmapAll()
 	call <SID>SendMulticastMsg('byebye', [])
@@ -186,6 +198,7 @@ function! s:Disconnect()
 	delcommand MultiplayerConfigure
 	delcommand MultiplayerChat
 	delcommand MultiplayerLet
+	delcommand MultiplayerWhere
 	let s:players = {}
 endfunction
 
@@ -195,7 +208,7 @@ function! s:CursorMoved()
 	if mode != s:players[getpid()].mode || range != s:players[getpid()].range
 		let s:players[getpid()].mode = mode
 		let s:players[getpid()].range = range
-		call <SID>SendMulticastMsg('cursor', [expand('%'), mode] + range)
+		call <SID>SendMulticastMsg('cursor', [s:players[getpid()].file, mode] + range)
 	endif
 endfunction
 
@@ -214,7 +227,7 @@ function! s:TextChanged()
 	call delete('/tmp/.bu2' . my_pid)
 	if len(diff)
 		"echom 'I have changes' . string(diff)
-		call <SID>SendMulticastMsg('diff', [expand('%')] + diff)
+		call <SID>SendMulticastMsg('diff', [s:players[getpid()].file] + diff)
 	endif
 endfunction
 
@@ -280,12 +293,12 @@ function! s:ParseMsg(msg)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
 		call <SID>SendUnicastMsg('hello_reply', [], pid)
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
-		call <SID>SendUnicastMsg('cursor', [expand('%'), s:players[getpid()].mode] + s:players[getpid()].range, pid)
+		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].file, s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'hello_reply'
 		"echom "received hello_reply: " . string(pid)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
-		call <SID>SendUnicastMsg('cursor', [expand('%'), s:players[getpid()].mode] + s:players[getpid()].range, pid)
+		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].file, s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'iam'
 		"echom "received iam: " . string(pid) . '-' . string(msg[0])
 		let s:players[pid].name = msg[0]

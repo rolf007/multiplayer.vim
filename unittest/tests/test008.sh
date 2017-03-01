@@ -7,6 +7,8 @@ EOL
 
 cat >>$vimtestdir/test.vim <<EOL
 
+call histadd(':', 'MultiplayerWhere')
+
 let s:cur_debug_pid = 0
 
 function! s:DebugMove(delta)
@@ -36,7 +38,7 @@ endfunction
 
 function! s:DebugConnect()
 	let pid = CreateTestPlayer()
-	let g:test_players[pid].file = "a.txt"
+	let g:test_players[pid].file = "$vimtestdir/a.txt"
 	let g:test_players[pid].mode = "n"
 	let g:test_players[pid].range = [1,1,1,1]
 	call SendToDut('hello', pid, [])

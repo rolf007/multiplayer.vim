@@ -219,7 +219,11 @@ Problems if remote player has an other terminal encoding than the master.
 Follow other players in split windows.
 Go to other players visual selection.
 Notify other players when going to/from visual-line mode.
-Use broadcast for 'hello', and multicast and unicast for everything else.
+Better algorithm for determining player colors. Don't change when others log
+off. Choose you own color, and remeber it to next time.
+Send filename separately. Not as part of 'cursor'.
+unittest and help for MultiplayerWhere
+unittest 'written'. write to new name.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

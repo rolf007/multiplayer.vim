@@ -27,10 +27,10 @@ call SendUnicastMsg("hello", my_pid, [])
 sleep 1200m
 call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
-call assert_equal(ExpectedMsg('cursor', ['a.txt', 'n', 1, 1, 1, 1]), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('cursor', ['$vimtestdir/a.txt', 'n', 1, 1, 1, 1]), GetMsg(my_pid))
 call SendUnicastMsg("iam", my_pid, ['Tester'])
 sleep 200m
-call SendUnicastMsg("diff", my_pid, ['a.txt', '0a1', '> hello world'])
+call SendUnicastMsg("diff", my_pid, ['$vimtestdir/a.txt', '0a1', '> hello world'])
 sleep 200m
 call assert_equal("hello world", getline(1))
 
