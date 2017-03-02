@@ -18,7 +18,8 @@ call SendToDut("hello", my_pid, [])
 
 call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
-call assert_equal(ExpectedMsg('cursor', ['$vimtestdir/a.txt', 'n', 1, 1, 1, 1]), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(my_pid))
 
 
 execute "normal mq/"

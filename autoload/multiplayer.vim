@@ -33,7 +33,7 @@ function! multiplayer#Connect()
 	command -nargs=? MultiplayerLet call <SID>Let("<args>")
 	command -nargs=0 MultiplayerDisconnect call <SID>Disconnect()
 	command -nargs=0 MultiplayerConfigure call <SID>Configure()
-	command -nargs=0 MultiplayerWhere call <SID>Where()
+	command -nargs=0 MultiplayerLs call <SID>Ls()
 	delcommand MultiplayerConnect
 	augroup MultiplayerAuGroup
 		autocmd!
@@ -45,14 +45,18 @@ function! multiplayer#Connect()
 		autocmd BufEnter * call <SID>BufEnter()
 		autocmd BufWritePost * call <SID>BufWritePost()
 	augroup END
-	call <SID>BufEnter()
+	let s:players[getpid()].file = expand('%:p')
+	let mode = mode()
+	let range = [virtcol("."), getpos(".")[1], virtcol("v"), getpos("v")[1]]
+	let s:players[getpid()].mode = mode
+	let s:players[getpid()].range = range
+	call <SID>Write()
 	let my_pid = getpid()
 	call system('mkfifo /tmp/vim_multi_player_pipe_' . my_pid)
 	let s:sleep_job = job_start(['/bin/sh', '-c', 'sleep infinity > /tmp/vim_multi_player_pipe_' . my_pid])
 	sleep 100m " make sure sleep keeps the cat alive
 	call job_start('cat /tmp/vim_multi_player_pipe_' . my_pid, {"out_cb": function("s:MyHandlerOut")})
 	call <SID>SendBroadcastMsg('hello', [])
-	call <SID>CursorMoved()
 	call <SID>MapAll()
 endfunction
 
@@ -96,6 +100,7 @@ endfunction
 
 function! s:BufEnter()
 	let s:players[getpid()].file = expand('%:p')
+	call <SID>SendMulticastMsg('file', [s:players[getpid()].file])
 	call <SID>Write()
 endfunction
 
@@ -175,9 +180,11 @@ function! s:Configure()
 	call <SID>Let("g:multiplayer_chat_destination='" . chat_dest . "'")
 endfunction
 
-function! s:Where()
-	for [pid, player] in items(s:players)
-		echo pid . ' ' . player.file . ':' . player.range[1] . ',' . player.range[0]
+function! s:Ls()
+	echo ""
+	for pid in sort(keys(s:players), 'N')
+		echon "<" . <SID>GetFullNameFromPid(pid) . ">"
+		echon ' ' . s:players[pid].file . ':' . s:players[pid].range[1] . ',' . s:players[pid].range[0] . "\n"
 	endfor
 endfunction
 
@@ -198,7 +205,7 @@ function! s:Disconnect()
 	delcommand MultiplayerConfigure
 	delcommand MultiplayerChat
 	delcommand MultiplayerLet
-	delcommand MultiplayerWhere
+	delcommand MultiplayerLs
 	let s:players = {}
 endfunction
 
@@ -208,7 +215,7 @@ function! s:CursorMoved()
 	if mode != s:players[getpid()].mode || range != s:players[getpid()].range
 		let s:players[getpid()].mode = mode
 		let s:players[getpid()].range = range
-		call <SID>SendMulticastMsg('cursor', [s:players[getpid()].file, mode] + range)
+		call <SID>SendMulticastMsg('cursor', [mode] + range)
 	endif
 endfunction
 
@@ -267,25 +274,19 @@ function! s:ParseMsg(msg)
 	let msg = a:msg[3:msglen + 3 - 1]
 	let rest = a:msg[msglen + 3:]
 	if command == 'cursor'
-		let file = msg[0]
-		let mode = msg[1]
-		let x0 = msg[2]
-		let y0 = msg[3]
-		let x1 = msg[4]
-		let y1 = msg[5]
-		"echom "received cursor: " . file . " " . mode . ' ' . x0 . ' ' . y0 . ' ' . x1 . ' ' . y1
-		let files = [file]
-		if has_key(s:players, pid) && count(files, s:players[pid].file) == 0
-			call add(files, s:players[pid].file)
-		endif
-		let s:players[pid].file = file
+		let mode = msg[0]
+		let x0 = msg[1]
+		let y0 = msg[2]
+		let x1 = msg[3]
+		let y1 = msg[4]
+		"echom "received cursor: " . mode . ' ' . x0 . ' ' . y0 . ' ' . x1 . ' ' . y1
 		let s:players[pid].mode = mode
 		if y0 < y1 || (y0 == y1 && x0 < x1)
 			let s:players[pid].range = [x0, y0, x1, y1]
 		else
 			let s:players[pid].range = [x1, y1, x0, y0]
 		endif
-		call <SID>DrawCursors(files)
+		call <SID>DrawCursors([s:players[pid].file])
 	elseif command == 'hello'
 		"echom "received hello: " . string(pid)
 		"echom "I would like to send iam " . <SID>GetNameFromPid(getpid()) . " to " . pid
@@ -293,16 +294,22 @@ function! s:ParseMsg(msg)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
 		call <SID>SendUnicastMsg('hello_reply', [], pid)
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
-		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].file, s:players[getpid()].mode] + s:players[getpid()].range, pid)
+		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
+		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'hello_reply'
 		"echom "received hello_reply: " . string(pid)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
 		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
-		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].file, s:players[getpid()].mode] + s:players[getpid()].range, pid)
+		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
+		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'iam'
 		"echom "received iam: " . string(pid) . '-' . string(msg[0])
 		let s:players[pid].name = msg[0]
 		redrawstatus
+	elseif command == 'file'
+		let file = msg[0]
+		call <SID>DrawCursors([s:players[pid].file, file])
+		let s:players[pid].file = file
 	elseif command == 'byebye'
 		let byefile = s:players[pid].file
 		unlet s:players[pid]

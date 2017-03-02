@@ -14,11 +14,12 @@ call SendToDut("hello", my_pid, [])
 
 call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
-call assert_equal(ExpectedMsg('cursor', ['$vimtestdir/a.txt', 'n', 1, 1, 1, 1]), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(my_pid))
 call assert_equal(0, GetMsg(my_pid))
 
 call SendToDut("iam", my_pid, ['Tester'])
-call SendToDut('cursor', my_pid, ['$vimtestdir/a.txt', 'n', 1, 1, 1, 1])
+call SendToDut('cursor', my_pid, ['n', 1, 1, 1, 1])
 
 call SendToDut("diff", my_pid, ['$vimtestdir/a.txt', '1c1', '< ', '---', '> hello world'])
 call assert_equal(0, GetMsg(my_pid))
@@ -28,7 +29,7 @@ call SendToDut("diff", my_pid, ['$vimtestdir/a.txt', '1a2,3', "> \<TAB>12345\<TA
 call assert_equal(['hello world', "\<TAB>12345\<TAB>123", '123456789'], getline(1, '$'))
 
 let g:test_players[my_pid].range = ['6', '2', '6', '2']
-call SendToDut('cursor', my_pid, ['$vimtestdir/a.txt', 'n', '6', '2', '6', '2'])
+call SendToDut('cursor', my_pid, ['n', '6', '2', '6', '2'])
 let m = getmatches()
 call assert_equal(1, len(m))
 call assert_equal('MPCol2', m[0].group)

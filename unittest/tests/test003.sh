@@ -20,7 +20,8 @@ let pid_tester = CreateTestPlayer()
 call SendToDut("hello", pid_tester, [])
 call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_tester))
-call assert_equal(ExpectedMsg('cursor', ['$vimtestdir/a.txt', 'n', 1, 1, 1, 1]), GetMsg(pid_tester))
+call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(pid_tester))
+call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_tester))
 
 
 "put 'before' from default register
@@ -65,7 +66,8 @@ let pid_jester = CreateTestPlayer()
 call SendToDut("hello", pid_jester, [])
 call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_jester))
-call assert_equal(ExpectedMsg('cursor', ['$vimtestdir/a.txt', 'n', 1, 1, 1, 1]), GetMsg(pid_jester))
+call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(pid_jester))
+call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_jester))
 
 "put 'before' from player 1
 execute "normal mP1"

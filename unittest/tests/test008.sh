@@ -7,7 +7,7 @@ EOL
 
 cat >>$vimtestdir/test.vim <<EOL
 
-call histadd(':', 'MultiplayerWhere')
+call histadd(':', 'MultiplayerLs')
 
 let s:cur_debug_pid = 0
 
@@ -23,7 +23,7 @@ function! s:DebugMove(delta)
 endfunction
 
 function! SendCursor(from_pid)
-	call SendToDut('cursor', a:from_pid, [g:test_players[a:from_pid].file, g:test_players[a:from_pid].mode] + g:test_players[a:from_pid].range)
+	call SendToDut('cursor', a:from_pid, [g:test_players[a:from_pid].mode] + g:test_players[a:from_pid].range)
 endfunction
 
 function! s:DebugSetCur(pid)
