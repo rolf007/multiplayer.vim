@@ -92,8 +92,6 @@ function! MultiplayerName(n)
 		return ''
 	elseif a:n >= len(players)
 		return ''
-	elseif players[a:n] == getpid()
-		return ">" . <SID>GetFullNameFromPid(players[a:n]) . "<"
 	else
 		return <SID>GetFullNameFromPid(players[a:n])
 endfunction
@@ -151,7 +149,7 @@ function! s:Let(key_value)
 	if do_remap | call <SID>MapAll() | endif
 	if key == 'g:multiplayer_name'
 		execute "let s:players[getpid()].name = " . value
-		call <SID>SendMulticastMsg('iam', [<SID>GetNameFromPid(getpid())])
+		call <SID>SendMulticastMsg('iam', [s:players[getpid()].name])
 		redrawstatus
 	endif
 	let s:player_profile[key] = value
@@ -182,9 +180,25 @@ endfunction
 
 function! s:Ls()
 	echo ""
+	let first = 1
 	for pid in sort(keys(s:players), 'N')
-		echon "<" . <SID>GetFullNameFromPid(pid) . ">"
-		echon ' ' . s:players[pid].file . ':' . s:players[pid].range[1] . ',' . s:players[pid].range[0] . "\n"
+		if !first
+			echon "\n"
+		endif
+		let first = 0
+		let l_name = len(<SID>GetFullNameFromPid(pid))
+		let file = s:players[pid].file
+		let l_file = len(file)
+		call <SID>EchoHlPlayer(pid)
+		echohl None
+		if l_name < 8
+			echon repeat(' ', 8-l_name)
+		endif
+		echon ' "' . file . '"'
+		if l_file < 28
+			echon repeat(' ', 28-l_file)
+		endif
+		echon ' line ' . s:players[pid].range[1] . ', col ' . s:players[pid].range[0]
 	endfor
 endfunction
 
@@ -289,17 +303,17 @@ function! s:ParseMsg(msg)
 		call <SID>DrawCursors([s:players[pid].file])
 	elseif command == 'hello'
 		"echom "received hello: " . string(pid)
-		"echom "I would like to send iam " . <SID>GetNameFromPid(getpid()) . " to " . pid
+		"echom "I would like to send iam " . s:players[getpid()].name . " to " . pid
 		"echom "sending cursor" . string(s:players[getpid()].range)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
 		call <SID>SendUnicastMsg('hello_reply', [], pid)
-		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
+		call <SID>SendUnicastMsg('iam', [s:players[getpid()].name], pid)
 		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'hello_reply'
 		"echom "received hello_reply: " . string(pid)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
-		call <SID>SendUnicastMsg('iam', [<SID>GetNameFromPid(getpid())], pid)
+		call <SID>SendUnicastMsg('iam', [s:players[getpid()].name], pid)
 		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 	elseif command == 'iam'
@@ -320,7 +334,10 @@ function! s:ParseMsg(msg)
 		call <SID>BuffDo(written_as, { -> execute("edit!", "") })
 	elseif command == 'chat'
 		let file = msg[0]
-		call <SID>AddToChatHistory(file, msg[1], msg[2], pid, msg[3], 1)
+		let x = msg[1]
+		let y = msg[2]
+		let chat_msg = msg[3]
+		call <SID>AddToChatHistory(file, x, y, pid, chat_msg, 1)
 	elseif command == 'request_register'
 		let register = msg[1]
 		let operation = msg[0]
@@ -406,6 +423,11 @@ function! s:Patch(patch)
 	call setpos(".", pos)
 endfunction
 
+function! s:EchoHlPlayer(pid)
+	execute "echohl MPCol" . <SID>GetPlayerPower(a:pid)
+	echon <SID>GetFullNameFromPid(a:pid)
+endfunction
+
 function! s:InputOther()
 	let the_others = <SID>GetPlayers(getpid())
 	if len(the_others) == 0
@@ -415,9 +437,8 @@ function! s:InputOther()
 	else
 		let num = 0
 		for other in the_others
-			execute "echohl MPCol" . <SID>GetPlayerPower(other)
+			call <SID>EchoHlPlayer(other)
 			echon "(" . num . ")"
-			echon <SID>GetFullNameFromPid(other)
 			let num = num + 1
 		endfor
 		echohl None
@@ -456,9 +477,7 @@ endfunction
 
 function! s:AddToChatHistory(file, x, y, pid, chat_msg, incoming)
 	if (a:incoming && g:multiplayer_chat_destination =~# 'e') || (!a:incoming && g:multiplayer_chat_destination =~# 'E')
-		execute "echohl MPCol" . <SID>GetPlayerPower(a:pid)
-		redraw
-		echon <SID>GetFullNameFromPid(a:pid)
+		call <SID>EchoHlPlayer(a:pid)
 		echohl None
 		echon "> " . a:chat_msg
 	endif
@@ -613,15 +632,8 @@ function! s:GetEvents(line, file)
 	return events
 endfunction
 
-function! s:GetNameFromPid(pid)
-	if has_key(s:players, a:pid)
-		return s:players[a:pid].name
-	endif
-	return 'Noname'
-endfunction
-
 function! s:GetFullNameFromPid(pid)
-	let name = <SID>GetNameFromPid(a:pid)
+	let name = s:players[a:pid].name
 	let players = <SID>GetPlayers('')
 	let num = 0
 	for player in players
@@ -635,7 +647,11 @@ function! s:GetFullNameFromPid(pid)
 	if num > 1
 		let name = name . mynum
 	endif
-	return name
+	if a:pid == getpid()
+		return ">" . name . "<"
+	else
+		return name
+	endif
 endfunction
 
 function! s:GetPlayers(my_pid)

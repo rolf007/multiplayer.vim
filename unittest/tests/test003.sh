@@ -4,6 +4,9 @@ source $ROOT/"${BASH_SOURCE%/*}"/../inject.sh
 
 cat >>$vimtestdir/.vimrc <<EOL
 let g:multiplayer_nmap_leader = 'm'
+call histadd(':', 'call SendToDut("chat", 1000001, ["file", 3,4, "woot"])')
+let g:multiplayer_chat_destination = 'ceC'
+call histadd(':', 'MultiplayerLs')
 EOL
 
 cat >>$vimtestdir/test.vim <<EOL
@@ -22,6 +25,7 @@ call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_tester))
+call SendToDut("iam", pid_tester, ['Tester'])
 
 
 "put 'before' from default register
@@ -68,6 +72,7 @@ call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_jester))
+call SendToDut("iam", pid_jester, ['James Bond'])
 
 "put 'before' from player 1
 execute "normal mP1"
