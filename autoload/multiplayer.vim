@@ -181,6 +181,8 @@ endfunction
 function! s:Ls()
 	echo ""
 	let first = 1
+	let cwd = getcwd() . '/'
+	let l_cwd = len(cwd)
 	for pid in sort(keys(s:players), 'N')
 		if !first
 			echon "\n"
@@ -188,11 +190,14 @@ function! s:Ls()
 		let first = 0
 		let l_name = len(<SID>GetFullNameFromPid(pid))
 		let file = s:players[pid].file
+		if file[0:l_cwd-1] == cwd
+			let file = file[l_cwd:]
+		endif
 		let l_file = len(file)
 		call <SID>EchoHlPlayer(pid)
 		echohl None
-		if l_name < 8
-			echon repeat(' ', 8-l_name)
+		if l_name < 10
+			echon repeat(' ', 10-l_name)
 		endif
 		echon ' "' . file . '"'
 		if l_file < 28
