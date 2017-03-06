@@ -70,7 +70,7 @@ endif
 command! -nargs=0 MultiplayerConnect call multiplayer#Connect()
 
 if g:multiplayer_auto_connect == 'y'
-	call multiplayer#Connect()
+	autocmd VimEnter * :call multiplayer#Connect()
 endif
 
 hi MPCol1 term=reverse cterm=bold ctermfg=White ctermbg=Red guifg=White guibg=Red
