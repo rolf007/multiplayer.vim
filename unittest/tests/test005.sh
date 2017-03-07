@@ -17,6 +17,7 @@ call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMsg(my_pid))
 
 echom "First instance"
 MultiplayerLet &ts=12
@@ -44,6 +45,7 @@ call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(my_pid))
+call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMsg(my_pid))
 
 echom "Second instance"
 call assert_equal(12, &ts)

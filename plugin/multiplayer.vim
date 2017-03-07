@@ -39,6 +39,10 @@ if !exists('g:multiplayer_name')
 	let g:multiplayer_name = "noname"
 endif
 
+if !exists('g:multiplayer_highlight')
+	let g:multiplayer_highlight = ['inverse', 'Red', 'White']
+endif
+
 if !exists('g:multiplayer_nmap_leader')
 	let g:multiplayer_nmap_leader = "<F4>"
 endif
