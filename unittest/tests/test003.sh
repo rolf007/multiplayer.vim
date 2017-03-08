@@ -25,6 +25,8 @@ call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_tester))
+call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMsg(pid_tester))
+call assert_equal(0, GetMsg(pid_tester))
 call SendToDut("iam", pid_tester, ['Tester'])
 
 
@@ -72,6 +74,8 @@ call assert_equal(ExpectedMsg('hello_reply', []), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('iam', ['noname']), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_jester))
+call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMsg(pid_jester))
+call assert_equal(0, GetMsg(pid_jester))
 call SendToDut("iam", pid_jester, ['James Bond'])
 
 "put 'before' from player 1

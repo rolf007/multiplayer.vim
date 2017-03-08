@@ -28,7 +28,7 @@ function! multiplayer#StatusLine()
 endfunction
 
 function! multiplayer#Connect()
-	let s:players[getpid()] = {"name": g:multiplayer_name, "file": "", "mode": "n", "range": [1,1,1,1]}
+	let s:players[getpid()] = {"name": g:multiplayer_name, "file": "", "mode": "n", "range": [1,1,1,1], "highlight": g:multiplayer_highlight}
 	command -nargs=1 MultiplayerChat call <SID>Chat("<args>")
 	command -nargs=? MultiplayerLet call <SID>Let("<args>")
 	command -nargs=0 MultiplayerDisconnect call <SID>Disconnect()
@@ -152,6 +152,11 @@ function! s:Let(key_value)
 		call <SID>SendMulticastMsg('iam', [s:players[getpid()].name])
 		redrawstatus
 	endif
+	if key == 'g:multiplayer_highlight'
+		execute "let s:players[getpid()].highlight = " . value
+		call <SID>SendMulticastMsg('highlight', [s:players[getpid()].highlight])
+		redrawstatus
+	endif
 	let s:player_profile[key] = value
 endfunction
 
@@ -176,6 +181,14 @@ function! s:Configure()
 
 	let chat_dest = input("Enter your chat destination [clemCLEM]:", g:multiplayer_chat_destination)
 	call <SID>Let("g:multiplayer_chat_destination='" . chat_dest . "'")
+
+	let highlight_mode = g:multiplayer_highlight[0]
+	let highlight_fg = g:multiplayer_highlight[1]
+	let highlight_bg = g:multiplayer_highlight[2]
+	let highlight_mode = input("Enter your highlight mode, e.g. inverse:", highlight_mode)
+	let highlight_fg = input("Enter your highlight fg, e.g. Red:", highlight_fg)
+	let highlight_bg = input("Enter your highlight bg, e.g. White:", highlight_bg)
+	call <SID>Let("g:multiplayer_highlight=" . string([highlight_mode, highlight_fg, highlight_bg]) . "")
 endfunction
 
 function! s:Ls()
@@ -310,20 +323,26 @@ function! s:ParseMsg(msg)
 		"echom "received hello: " . string(pid)
 		"echom "I would like to send iam " . s:players[getpid()].name . " to " . pid
 		"echom "sending cursor" . string(s:players[getpid()].range)
-		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
+		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1], "highlight":["","",""]}
 		call <SID>SendUnicastMsg('hello_reply', [], pid)
 		call <SID>SendUnicastMsg('iam', [s:players[getpid()].name], pid)
 		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
+		call <SID>SendUnicastMsg('highlight', [s:players[getpid()].highlight], pid)
 	elseif command == 'hello_reply'
 		"echom "received hello_reply: " . string(pid)
-		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1]}
+		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1], "highlight":["","",""]}
 		call <SID>SendUnicastMsg('iam', [s:players[getpid()].name], pid)
 		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
+		call <SID>SendUnicastMsg('highlight', [s:players[getpid()].highlight], pid)
 	elseif command == 'iam'
 		"echom "received iam: " . string(pid) . '-' . string(msg[0])
 		let s:players[pid].name = msg[0]
+		redrawstatus
+	elseif command == 'highlight'
+		"echom "received highlight: " . string(pid) . '-' . string(msg[0])
+		let s:players[pid].highlight = msg[0]
 		redrawstatus
 	elseif command == 'file'
 		let file = msg[0]
