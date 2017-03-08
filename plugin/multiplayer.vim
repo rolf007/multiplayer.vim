@@ -68,7 +68,7 @@ if !exists('g:multiplayer_chat_mapping')
 endif
 
 if !exists('g:multiplayer_chat_destination')
-	let g:multiplayer_chat_destination = 'cmC'
+	let g:multiplayer_chat_destination = 'Cec'
 endif
 
 command! -nargs=0 MultiplayerConnect call multiplayer#Connect()
@@ -77,18 +77,19 @@ if g:multiplayer_auto_connect == 'y'
 	autocmd VimEnter * :call multiplayer#Connect()
 endif
 
-hi MPCol1 term=reverse cterm=bold ctermfg=White ctermbg=Red guifg=White guibg=Red
-hi MPCol2 term=reverse cterm=bold ctermfg=White ctermbg=Green guifg=White guibg=Green
-hi MPCol3 term=reverse cterm=bold ctermfg=White ctermbg=Yellow guifg=White guibg=Yellow
-hi MPCol4 term=reverse cterm=bold ctermfg=White ctermbg=Blue guifg=White guibg=Blue
-hi MPCol5 term=reverse cterm=bold ctermfg=White ctermbg=Magenta guifg=White guibg=Magenta
-hi MPCol6 term=reverse cterm=bold ctermfg=White ctermbg=Cyan guifg=White guibg=Cyan
-hi MPCol7 term=reverse cterm=bold ctermfg=White ctermbg=Black guifg=White guibg=Black
-
 augroup MultiplayerGlobalAuGroup
 	autocmd!
 	autocmd SwapExists * call multiplayer#SwapExists(v:swapname)
 augroup END
+
+function! StatusLineBegin()
+	return ""
+endfunction
+
+function! StatusLineEnd()
+	return ""
+endfunction
+
 
 
 "for x in $(ls /tmp/vim* | sed -e 's/[^0-9]*\(.*\)/\1/'); do kill $x; done ; rm /tmp/vim*

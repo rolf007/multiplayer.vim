@@ -33,7 +33,7 @@ let g:test_players[my_pid].range = ['6', '2', '6', '2']
 call SendToDut('cursor', my_pid, ['n', '6', '2', '6', '2'])
 let m = getmatches()
 call assert_equal(1, len(m))
-call assert_equal('MPCol2', m[0].group)
+call assert_equal('MPCol1000001', m[0].group)
 call assert_equal('\%>5v\%<7v\%2l', m[0].pattern)
 call assert_equal(0, GetMsg(my_pid))
 

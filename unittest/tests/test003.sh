@@ -28,6 +28,7 @@ call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_tester))
 call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMsg(pid_tester))
 call assert_equal(0, GetMsg(pid_tester))
 call SendToDut("iam", pid_tester, ['Tester'])
+call SendToDut("highlight", pid_tester, [['inverse', 'Green', 'White']])
 
 
 "put 'before' from default register
@@ -77,6 +78,7 @@ call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(pid_jester))
 call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMsg(pid_jester))
 call assert_equal(0, GetMsg(pid_jester))
 call SendToDut("iam", pid_jester, ['James Bond'])
+call SendToDut("highlight", pid_jester, [['bold,reverse', 'DarkGrey', 'Yellow']])
 
 "put 'before' from player 1
 execute "normal mP1"

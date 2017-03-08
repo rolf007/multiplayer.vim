@@ -94,7 +94,21 @@ OPTIONS                                                    *multiplayer-options*
     E	outgoing chat are |echo|'ed
     M	outgoing chat are |echom|'ed
 
-    default: "cmC"
+    default: "Cec"
+
+  |g:multiplayer_highlight|
+    A list with three elements specifying how the player should be
+    highlighted the following places
+      - as the cursor
+      - in the statusline
+      - in MultiplayerLs
+      - when executing mappings and more than 3 players connected
+      - in chat
+    Example: change players appearance while connected:
+>
+    :MultiplayerLet g:multiplayer_highlight=['inverse','DarkGrey','Yellow']
+<
+
 
 The options are typically set in your .vimrc. If a player wants a different
 configuration, then he should use :MultiplayerConfigure or :MultiplayerLet
@@ -222,8 +236,6 @@ Problems if remote player has an other terminal encoding than the master.
 Follow other players in split windows.
 Go to other players visual selection.
 Notify other players when going to/from visual-line mode.
-Better algorithm for determining player colors. Don't change when others log
-off. Choose you own color, and remeber it to next time.
 unittest 'written'. Also, write to new name.
 
 ==============================================================================

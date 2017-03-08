@@ -27,12 +27,20 @@ function! SendCursor(from_pid)
 endfunction
 
 function! s:DebugSetCur(pid)
+	let highlights = [
+		\ ['inverse', 'Red', 'White'],
+		\ ['inverse', 'Green', 'White'],
+		\ ['inverse', 'Blue', 'White'],
+		\ ['inverse', 'Cyan', 'White'],
+		\ ['inverse', 'Magenta', 'White']
+		\ ]
 	if s:cur_debug_pid != 0
 		call SendToDut('iam', s:cur_debug_pid, ["debug".(s:cur_debug_pid-1000000)])
 	endif
 	let s:cur_debug_pid = a:pid
 	if s:cur_debug_pid != 0
 		call SendToDut('iam', s:cur_debug_pid, ["*debug".(s:cur_debug_pid-1000000)."*"])
+		call SendToDut('highlight', s:cur_debug_pid, [highlights[s:cur_debug_pid-1000000]])
 	endif
 endfunction
 

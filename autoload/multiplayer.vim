@@ -15,20 +15,12 @@ function! multiplayer#LoadProfile(ip)
 endfunction
 
 function! multiplayer#StatusLine()
-	let ret  = "%#MPCol1#%{MultiplayerName(0)}%*"
-	let ret .= "%#MPCol2#%{MultiplayerName(1)}%*"
-	let ret .= "%#MPCol4#%{MultiplayerName(2)}%*"
-	let ret .= "%#MPCol1#%{MultiplayerName(3)}%*"
-	let ret .= "%#MPCol2#%{MultiplayerName(4)}%*"
-	let ret .= "%#MPCol4#%{MultiplayerName(5)}%*"
-	let ret .= "%#MPCol1#%{MultiplayerName(6)}%*"
-	let ret .= "%#MPCol2#%{MultiplayerName(7)}%*"
-	let ret .= "%#MPCol4#%{MultiplayerName(8)}%*"
-	return ret
+	return "%{StatusLineBegin()}%{StatusLineEnd()}"
 endfunction
 
 function! multiplayer#Connect()
 	let s:players[getpid()] = {"name": g:multiplayer_name, "file": "", "mode": "n", "range": [1,1,1,1], "highlight": g:multiplayer_highlight}
+	call <SID>UpdateHighlight(getpid())
 	command -nargs=1 MultiplayerChat call <SID>Chat("<args>")
 	command -nargs=? MultiplayerLet call <SID>Let("<args>")
 	command -nargs=0 MultiplayerDisconnect call <SID>Disconnect()
@@ -58,6 +50,7 @@ function! multiplayer#Connect()
 	call job_start('cat /tmp/vim_multi_player_pipe_' . my_pid, {"out_cb": function("s:MyHandlerOut")})
 	call <SID>SendBroadcastMsg('hello', [])
 	call <SID>MapAll()
+	call <SID>UpdateStatusLine()
 endfunction
 
 
@@ -154,10 +147,18 @@ function! s:Let(key_value)
 	endif
 	if key == 'g:multiplayer_highlight'
 		execute "let s:players[getpid()].highlight = " . value
+		call <SID>UpdateHighlight(getpid())
 		call <SID>SendMulticastMsg('highlight', [s:players[getpid()].highlight])
 		redrawstatus
 	endif
 	let s:player_profile[key] = value
+endfunction
+
+function! s:UpdateHighlight(pid)
+	let mode = s:players[a:pid].highlight[0]
+	let fg = s:players[a:pid].highlight[1]
+	let bg = s:players[a:pid].highlight[2]
+	execute("highlight MPCol" . a:pid . " term=inverse cterm=" . mode . " ctermfg=" . fg . " ctermbg=" . bg . " gui=" . mode . " guifg=" . fg . " guibg=" . bg)
 endfunction
 
 function! s:Configure()
@@ -239,6 +240,7 @@ function! s:Disconnect()
 	delcommand MultiplayerLet
 	delcommand MultiplayerLs
 	let s:players = {}
+	call <SID>UpdateStatusLine()
 endfunction
 
 function! s:CursorMoved()
@@ -318,40 +320,51 @@ function! s:ParseMsg(msg)
 		else
 			let s:players[pid].range = [x1, y1, x0, y0]
 		endif
-		call <SID>DrawCursors([s:players[pid].file])
+		call <SID>DrawCursors()
 	elseif command == 'hello'
 		"echom "received hello: " . string(pid)
 		"echom "I would like to send iam " . s:players[getpid()].name . " to " . pid
 		"echom "sending cursor" . string(s:players[getpid()].range)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1], "highlight":["","",""]}
+		execute("highlight MPCol" . pid . " none")
 		call <SID>SendUnicastMsg('hello_reply', [], pid)
 		call <SID>SendUnicastMsg('iam', [s:players[getpid()].name], pid)
 		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 		call <SID>SendUnicastMsg('highlight', [s:players[getpid()].highlight], pid)
+		call <SID>UpdateStatusLine()
 	elseif command == 'hello_reply'
 		"echom "received hello_reply: " . string(pid)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1], "highlight":["","",""]}
+		execute("highlight MPCol" . pid . " none")
 		call <SID>SendUnicastMsg('iam', [s:players[getpid()].name], pid)
 		call <SID>SendUnicastMsg('file', [s:players[getpid()].file], pid)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 		call <SID>SendUnicastMsg('highlight', [s:players[getpid()].highlight], pid)
+		call <SID>UpdateStatusLine()
 	elseif command == 'iam'
 		"echom "received iam: " . string(pid) . '-' . string(msg[0])
 		let s:players[pid].name = msg[0]
+		call <SID>UpdateStatusLine()
 		redrawstatus
 	elseif command == 'highlight'
-		"echom "received highlight: " . string(pid) . '-' . string(msg[0])
+		"echom "received highlight: " . string(pid) . ' ' . string(msg[0])
 		let s:players[pid].highlight = msg[0]
+		call <SID>UpdateHighlight(pid)
+		if pid < getpid() && msg[0] == s:players[getpid()].highlight
+			call <SID>SetFirstAvailableHighlight()
+		end
+		call <SID>UpdateStatusLine()
 		redrawstatus
 	elseif command == 'file'
 		let file = msg[0]
-		call <SID>DrawCursors([s:players[pid].file, file])
+		call <SID>DrawCursors()
 		let s:players[pid].file = file
 	elseif command == 'byebye'
 		let byefile = s:players[pid].file
 		unlet s:players[pid]
-		call <SID>DrawCursors([byefile])
+		call <SID>DrawCursors()
+		call <SID>UpdateStatusLine()
 		redrawstatus
 	elseif command == 'written'
 		let written_as = msg[0]
@@ -426,6 +439,30 @@ function! s:ParseMsg(msg)
 	endif
 endfunction
 
+function! s:SetFirstAvailableHighlight()
+	let highlights = [
+		\ ['inverse', 'Red', 'White'],
+		\ ['inverse', 'Green', 'White'],
+		\ ['inverse', 'Blue', 'White'],
+		\ ['inverse', 'Cyan', 'White'],
+		\ ['inverse', 'Magenta', 'White']
+		\ ]
+	for h in highlights
+		let good = 1
+		for player in keys(s:players)
+			if s:players[player].highlight == h
+				let good = 0
+			endif
+		endfor
+		if good
+			let s:players[getpid()].highlight = h
+			call <SID>UpdateHighlight(getpid())
+			call <SID>SendMulticastMsg('highlight', [s:players[getpid()].highlight])
+			return
+		endif
+	endfor
+endfunction
+
 function s:CmdWinLeave(hist)
 	call histdel(a:hist, -1)
 	call histdel(a:hist, -1)
@@ -448,7 +485,7 @@ function! s:Patch(patch)
 endfunction
 
 function! s:EchoHlPlayer(pid)
-	execute "echohl MPCol" . <SID>GetPlayerPower(a:pid)
+	execute "echohl MPCol" . a:pid
 	echon <SID>GetFullNameFromPid(a:pid)
 endfunction
 
@@ -577,7 +614,7 @@ function! s:UnmapAll()
 	endif
 endfunction
 
-function! s:DrawCursors(files)
+function! s:DrawCursors()
 	let oldnr = winnr()
 	for w in range(1, winnr('$'))
 		exec w.'wincmd w'
@@ -589,71 +626,33 @@ function! s:DrawCursors(files)
 	endfor
 	exec oldnr.'wincmd w'
 
-	for f in a:files
-		let state = 0
-		for y in <SID>AllCursorLines(f)
-			let events = <SID>GetEvents(y, f)
-			let xs = []
-			for xx in keys(events)
-				call add(xs, xx + 0)
-			endfor
-			for x in sort(xs, 'n')
-				for pid in keys(events[x])
-					let ev = events[x][pid]
-					if state
-						call <SID>BuffDoAll(f, { -> matchadd('MPCol' . state, '\%>' . string(xo-1) . 'v\%<' . x . 'v\%' . y . 'l') })
-					endif
-					let xo = x
-					let playerPower = <SID>GetPlayerPower(pid)
-					if ev == 'start'
-						let state = or(state, playerPower)
-					elseif ev == 'end'
-						let state = and(state, 65535 - playerPower)
-					endif
-				endfor
-			endfor
+	let the_others = <SID>GetPlayers(getpid())
+	for player in the_others
+		let f = s:players[player].file
+		for y in range(s:players[player].range[1], s:players[player].range[3])
+			let events = <SID>GetEvents(y, player)
+			call <SID>BuffDoAll(f, { -> matchadd('MPCol' . player, '\%>' . string(events[0]-1) . 'v\%<' . events[1] . 'v\%' . y . 'l') })
 		endfor
 	endfor
 endfunction
 
-function! s:GetEvents(line, file)
-	let events = {}
-	for pid in keys(s:players)
-		if s:players[pid].file == a:file
-			if s:players[pid].mode == 'v'
-				if a:line == s:players[pid].range[1]
-					call <SID>AddEvent(events, s:players[pid].range[0], pid, 'start')
-				endif
-				if a:line >= s:players[pid].range[1] && a:line < s:players[pid].range[3]
-					call <SID>AddEvent(events, 1000, pid, 'end')
-				endif
-				if a:line > s:players[pid].range[1] && a:line <= s:players[pid].range[3]
-					call <SID>AddEvent(events, 1, pid, 'start')
-				endif
-				if a:line == s:players[pid].range[3]
-					call <SID>AddEvent(events, s:players[pid].range[2] + 1, pid, 'end')
-				endif
-			elseif s:players[pid].mode == 'V'
-				if a:line >= s:players[pid].range[1] && a:line <= s:players[pid].range[3]
-					call <SID>AddEvent(events, 1, pid, 'start')
-					call <SID>AddEvent(events, 1000, pid, 'end')
-				endif
-			elseif s:players[pid].mode == ''
-				let minx = min([s:players[pid].range[0], s:players[pid].range[2]])
-				let maxx = max([s:players[pid].range[0], s:players[pid].range[2]])
-				if a:line >= s:players[pid].range[1] && a:line <= s:players[pid].range[3]
-					call <SID>AddEvent(events, minx, pid, 'start')
-					call <SID>AddEvent(events, maxx + 1, pid, 'end')
-				endif
-			elseif s:players[pid].mode == 'n' || s:players[pid].mode == 'i'
-				if a:line == s:players[pid].range[1]
-					call <SID>AddEvent(events, s:players[pid].range[0], pid, 'start')
-					call <SID>AddEvent(events, s:players[pid].range[0]+1, pid, 'end')
-				endif
-			endif
+function! s:GetEvents(line, pid)
+	if s:players[a:pid].mode == 'v'
+		if a:line == s:players[a:pid].range[1]
+			return [s:players[a:pid].range[0], 1000]
+		elseif a:line == s:players[a:pid].range[3]
+			return [1, s:players[a:pid].range[2] + 1]
 		endif
-	endfor
-	return events
+		return [1,1000]
+	elseif s:players[a:pid].mode == 'V'
+		return [1,1000]
+	elseif s:players[a:pid].mode == ''
+		let minx = min([s:players[a:pid].range[0], s:players[a:pid].range[2]])
+		let maxx = max([s:players[a:pid].range[0], s:players[a:pid].range[2]])
+		return [minx, maxx + 1]
+	else
+		return [s:players[a:pid].range[0], s:players[a:pid].range[0] + 1]
+	endif
 endfunction
 
 function! s:GetFullNameFromPid(pid)
@@ -702,23 +701,15 @@ function! s:GetPlayerPower(pid)
 	return 0
 endfunction
 
-
-function! s:AllCursorLines(file)
-	let ret = []
-	for pid in keys(s:players)
-		if a:file == s:players[pid].file && pid != getpid()
-			let ret += range(s:players[pid].range[1], s:players[pid].range[3])
-		endif
+function s:UpdateStatusLine()
+	let a = &statusline
+	let body = ""
+	let players = <SID>GetPlayers('')
+	for pid in players
+		let body .= "%#MPCol" . pid . "#" . <SID>GetFullNameFromPid(pid) . "%*"
 	endfor
-	call sort(ret, 'n')
-	return ret
-endfunction
-
-function! s:AddEvent(events, x, pid, event)
-	if !has_key(a:events, a:x)
-		let a:events[a:x] = {}
-	endif
-	let a:events[a:x][a:pid] = a:event
+	let a = substitute(a, '\(.*%{StatusLineBegin()}\)\(.*\)\(%{StatusLineEnd()}.*\)', '\1' . body . '\3', "")
+	let &statusline = a
 endfunction
 
 
