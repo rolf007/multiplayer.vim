@@ -22,6 +22,12 @@ call assert_equal(ExpectedMsg('file', ['$vimtestdir/a.txt']), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('cursor', ['n', 1, 1, 1, 1]), GetMsg(my_pid))
 call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMsg(my_pid))
 
+call histadd('/', 'a')
+call histadd('/', 'b')
+call histadd('/', 'c')
+call assert_equal('a', histget('/', -3))
+call assert_equal('b', histget('/', -2))
+call assert_equal('c', histget('/', -1))
 
 execute "normal mq/"
 call assert_equal(ExpectedMsg('request_register', ['q/', 'q/']), GetMsg(my_pid))

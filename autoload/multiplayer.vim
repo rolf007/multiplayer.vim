@@ -3,6 +3,9 @@ let s:players = {}
 let s:read_buffer = []
 let s:player_profile = {}
 let s:profile_file = ""
+let s:remote_history = 0
+let s:in_cmdwin = 0
+let s:msg_queue = []
 
 function! multiplayer#LoadProfile(ip)
 	let s:profile_file = g:multiplayer_profiles_path . "profile_" . a:ip . ".vim"
@@ -36,6 +39,8 @@ function! multiplayer#Connect()
 		autocmd CursorMovedI * call <SID>CursorMoved()
 		autocmd BufEnter * call <SID>BufEnter()
 		autocmd BufWritePost * call <SID>BufWritePost()
+		autocmd CmdwinEnter * call <SID>CmdWinEnter()
+		autocmd CmdwinLeave * call <SID>CmdWinLeave()
 	augroup END
 	let s:players[getpid()].file = expand('%:p')
 	let mode = mode()
@@ -53,9 +58,8 @@ function! multiplayer#Connect()
 	call <SID>UpdateStatusLine()
 endfunction
 
-
 function! multiplayer#SwapExists(swapname)
-	if has_key(s:players, getpid()) != 0
+	if g:multiplayer_auto_connect == 'y'
 		let v:swapchoice = 'e'
 		return
 	endif
@@ -90,6 +94,7 @@ function! MultiplayerName(n)
 endfunction
 
 function! s:BufEnter()
+	"echom "BufEnter"
 	let s:players[getpid()].file = expand('%:p')
 	call <SID>SendMulticastMsg('file', [s:players[getpid()].file])
 	call <SID>Write()
@@ -298,7 +303,15 @@ endfunction
 
 function! s:MyHandlerOut(channel, msg)
 	execute "let m = " . a:msg
-	call <SID>ParseMsg(m)
+	if s:in_cmdwin
+		let s:msg_queue += [m]
+	else
+		for qm in s:msg_queue
+			call <SID>ParseMsg(qm)
+		endfor
+		let s:msg_queue = []
+		call <SID>ParseMsg(m)
+	endif
 endfunction
 
 function! s:ParseMsg(msg)
@@ -388,7 +401,11 @@ function! s:ParseMsg(msg)
 			"echom "replying: " . ' ' . operation . register_value . ' to ' . pid
 			call <SID>SendUnicastMsg('reply_register', [operation, register_value, register_type], pid)
 		elseif register == 'q/' || register == 'q?' || register == 'q:'
-			let history = [histget('/', -3), histget('/', -2), histget('/', -1)]
+			"echom "cmdwinheight = " . string(&cmdwinheight)
+			let history = []
+			for i in range(-&cmdwinheight, -1)
+				let history += [histget(register[1], i)]
+			endfor
 			"echom "replying history: " . ' ' . string([operation] + history) . ' to ' . pid
 			call <SID>SendUnicastMsg('reply_history', [operation] + history, pid)
 		else
@@ -420,10 +437,7 @@ function! s:ParseMsg(msg)
 			call histadd(operation[1], h)
 		endfor
 		call feedkeys(operation)
-		augroup CmdwinLeaveAuGroup
-			autocmd!
-			execute "autocmd CmdwinLeave * call <SID>CmdWinLeave('" . operation[1] . "')"
-		augroup END
+		let s:remote_history = 1
 	elseif command == 'diff'
 		let file = msg[0]
 		"echom "received changes" . string(msg[1:])
@@ -463,13 +477,21 @@ function! s:SetFirstAvailableHighlight()
 	endfor
 endfunction
 
-function s:CmdWinLeave(hist)
-	call histdel(a:hist, -1)
-	call histdel(a:hist, -1)
-	call histdel(a:hist, -1)
-	augroup CmdwinLeaveAuGroup
-		autocmd!
-	augroup END
+function s:CmdWinEnter()
+	"echom "CmdWinEnter"
+	let s:in_cmdwin = 1
+endfunction
+
+function s:CmdWinLeave()
+	"echom "CmdWinLeave"
+	if s:remote_history_size != 0
+		let hist = expand("<afile>")
+		for i in range(-&cmdwinheight, -1)
+			call histdel(hist, -1)
+		endfor
+	endif
+	let s:remote_history_size = 0
+	let s:in_cmdwin = 0
 endfunction
 
 function! s:Patch(patch)
