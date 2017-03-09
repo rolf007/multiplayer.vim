@@ -1,21 +1,11 @@
-" Vim Multiplayer 0.1 October 2016
-" A plugin to allow multiple vim users on the same file
-" Installation:
-"     Source this file
-"   or
-"     If using pathogen, copy this file into .vim/bundle/multiplayer/plugin/
-"   or
-"     Copy it to your .vim/plugin directory to automatically source it when vim
-"     starts
-"   or
-"     Copy it to your .vim/plugins directory (or any other directory) and source
-"     it explicitly from your .vimrc
-" Usgae:
-" try help Multiplayer
-" Note:
+" Vim Multiplayer Marts 2017
+" Usage:
+" :help Multiplayer
 " Author:
 "   Rolf Asmund
-"
+
+let s:player_profile = {}
+let s:profile_file = ""
 
 if !exists('g:multiplayer_profiles_path')
 	let mtch = matchlist(expand('<sfile>'), '\(.*\)plugin.*')
@@ -23,6 +13,16 @@ if !exists('g:multiplayer_profiles_path')
 		let g:multiplayer_profiles_path = mtch[1]
 	endif
 endif
+
+function! s:LoadProfile(ip)
+	let s:profile_file = g:multiplayer_profiles_path . "profile_" . a:ip . ".vim"
+	if filereadable(s:profile_file)
+		execute "let s:player_profile = " . readfile(s:profile_file)[0]
+		for key in keys(s:player_profile)
+			execute "let " . key . "=" . s:player_profile[key]
+		endfor
+	endif
+endfunction
 
 let ip = "local"
 if !exists('g:multiplayer_profiles_path')
@@ -32,7 +32,7 @@ else
 	if len(mtch) >= 2
 		let ip = mtch[1]
 	endif
-	call multiplayer#LoadProfile(ip)
+	call <SID>LoadProfile(ip)
 endif
 
 if !exists('g:multiplayer_name')
@@ -71,25 +71,41 @@ if !exists('g:multiplayer_chat_destination')
 	let g:multiplayer_chat_destination = 'Cec'
 endif
 
-command! -nargs=0 MultiplayerConnect call multiplayer#Connect()
+command! -nargs=0 MultiplayerConnect call multiplayer#Connect(s:profile_file, s:player_profile)
 
 if g:multiplayer_auto_connect == 'y'
-	autocmd VimEnter * :call multiplayer#Connect()
+	autocmd VimEnter * :call multiplayer#Connect(s:profile_file, s:player_profile)
 endif
 
 augroup MultiplayerGlobalAuGroup
 	autocmd!
-	autocmd SwapExists * call multiplayer#SwapExists(v:swapname)
+	autocmd SwapExists * call <SID>SwapExists(v:swapname)
 augroup END
 
-function! StatusLineBegin()
-	return ""
-endfunction
+function! s:SwapExists(swapname)
+	if g:multiplayer_auto_connect == 'y'
+		let v:swapchoice = 'e'
+		return
+	endif
 
-function! StatusLineEnd()
-	return ""
+	let answer = confirm("Swap file \"" . a:swapname . "\" already exists!", "&Open Read-Only\nEdit anyway\n&Recover\n&Quit\n&Abort\n&Multiplayer", 1)
+	if answer == 1
+		let v:swapchoice = 'o'
+	elseif answer == 2
+		let v:swapchoice = 'e'
+	elseif answer == 3
+		let v:swapchoice = 'r'
+	elseif answer == 4
+		let v:swapchoice = 'q'
+	elseif answer == 5
+		let v:swapchoice = 'a'
+	elseif answer == 6
+		call multiplayer#Connect(s:profile_file, s:player_profile)
+		let v:swapchoice = 'e'
+	else
+		let v:swapchoice = 'o'
+	endif
 endfunction
-
 
 
 "for x in $(ls /tmp/vim* | sed -e 's/[^0-9]*\(.*\)/\1/'); do kill $x; done ; rm /tmp/vim*

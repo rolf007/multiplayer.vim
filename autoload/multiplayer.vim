@@ -1,27 +1,17 @@
-let s:players = {}
+" Vim Multiplayer Marts 2017
+" Usage:
+" :help Multiplayer
+" Author:
+"   Rolf Asmund
 
-let s:read_buffer = []
-let s:player_profile = {}
-let s:profile_file = ""
-let s:remote_history = 0
-let s:in_cmdwin = 0
-let s:msg_queue = []
-
-function! multiplayer#LoadProfile(ip)
-	let s:profile_file = g:multiplayer_profiles_path . "profile_" . a:ip . ".vim"
-	if filereadable(s:profile_file)
-		execute "let s:player_profile = " . readfile(s:profile_file)[0]
-		for key in keys(s:player_profile)
-			execute "let " . key . "=" . s:player_profile[key]
-		endfor
-	endif
-endfunction
-
-function! multiplayer#StatusLine()
-	return "%{StatusLineBegin()}%{StatusLineEnd()}"
-endfunction
-
-function! multiplayer#Connect()
+function! multiplayer#Connect(profile_file, player_profile)
+	let s:profile_file = a:profile_file
+	let s:player_profile = a:player_profile
+	let s:read_buffer = []
+	let s:remote_history = 0
+	let s:in_cmdwin = 0
+	let s:msg_queue = []
+	let s:players = {}
 	let s:players[getpid()] = {"name": g:multiplayer_name, "file": "", "mode": "n", "range": [1,1,1,1], "highlight": g:multiplayer_highlight}
 	call <SID>UpdateHighlight(getpid())
 	command -nargs=1 MultiplayerChat call <SID>Chat("<args>")
@@ -56,41 +46,6 @@ function! multiplayer#Connect()
 	call <SID>SendBroadcastMsg('hello', [])
 	call <SID>MapAll()
 	call <SID>UpdateStatusLine()
-endfunction
-
-function! multiplayer#SwapExists(swapname)
-	if g:multiplayer_auto_connect == 'y'
-		let v:swapchoice = 'e'
-		return
-	endif
-
-	let answer = confirm("Swap file \"" . a:swapname . "\" already exists!", "&Open Read-Only\nEdit anyway\n&Recover\n&Quit\n&Abort\n&Multiplayer", 1)
-	if answer == 1
-		let v:swapchoice = 'o'
-	elseif answer == 2
-		let v:swapchoice = 'e'
-	elseif answer == 3
-		let v:swapchoice = 'r'
-	elseif answer == 4
-		let v:swapchoice = 'q'
-	elseif answer == 5
-		let v:swapchoice = 'a'
-	elseif answer == 6
-		call multiplayer#Connect()
-		let v:swapchoice = 'e'
-	else
-		let v:swapchoice = 'o'
-	endif
-endfunction
-
-function! MultiplayerName(n)
-	let players = <SID>GetPlayers('')
-	if count(players, getpid()) == 0
-		return ''
-	elseif a:n >= len(players)
-		return ''
-	else
-		return <SID>GetFullNameFromPid(players[a:n])
 endfunction
 
 function! s:BufEnter()
@@ -238,7 +193,7 @@ function! s:Disconnect()
 		call writefile([string(s:player_profile)], s:profile_file)
 	endif
 	call job_stop(s:sleep_job)
-	command -nargs=0 MultiplayerConnect call multiplayer#Connect()
+	command -nargs=0 MultiplayerConnect call multiplayer#Connect(s:profile_file, s:player_profile)
 	delcommand MultiplayerDisconnect
 	delcommand MultiplayerConfigure
 	delcommand MultiplayerChat
@@ -708,21 +663,6 @@ function! s:GetPlayers(my_pid)
 	return sort(the_others, 'n')
 endfunction
 
-function! s:GetPlayerPower(pid)
-	let players = <SID>GetPlayers('')
-	let power = 1
-	for pid in players
-		if pid == a:pid
-			while power >= 8
-				let power = power / 8
-			endwhile
-			return power
-		endif
-		let power = power*2
-	endfor
-	return 0
-endfunction
-
 function s:UpdateStatusLine()
 	let a = &statusline
 	let body = ""
@@ -730,13 +670,14 @@ function s:UpdateStatusLine()
 	for pid in players
 		let body .= "%#MPCol" . pid . "#" . <SID>GetFullNameFromPid(pid) . "%*"
 	endfor
-	let a = substitute(a, '\(.*%{StatusLineBegin()}\)\(.*\)\(%{StatusLineEnd()}.*\)', '\1' . body . '\3', "")
+	let a = substitute(a, '\(.*%{multiplayer_statusline#Begin()}\)\(.*\)\(%{multiplayer_statusline#End()}.*\)', '\1' . body . '\3', "")
 	let &statusline = a
 endfunction
 
 
 "echom BuffDo('x.txt',{ -> matchaddpos('MyGroup', [[2, 2,4]])})
 ""call BuffDo(1,{ -> execute("call setline(3, 'text')", "")})
+"do something in all windows that show the given buffer
 function! s:BuffDoAll(expr, lambda)
 	let oldnr = winnr()
 	for w in range(1, winnr('$'))
@@ -748,6 +689,7 @@ function! s:BuffDoAll(expr, lambda)
 	exec oldnr.'wincmd w'
 endfunction
 
+"do something in the given buffer
 function! s:BuffDo(expr, lambda)
 	let oldnr = winnr()
 	let winnr = bufwinnr(a:expr)

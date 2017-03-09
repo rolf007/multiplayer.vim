@@ -21,8 +21,8 @@ set statusline +=%4*\ %t%*            "filename
 set statusline +=%2*%m%r%w%*          "modified flag, read only,
 set statusline +=\ UNITTESTING\ $0
 set statusline +=%=
-let &statusline .= multiplayer#StatusLine()
-set statusline +=%1*line:\ %l%*     "current line
+let &statusline .= multiplayer_statusline#Get()
+set statusline +=\ %1*line:\ %l%*     "current line
 set statusline +=%2*/%L,\ \ %*        "total lines
 set statusline +=%1*row:\ %c\ %*      "virtual column number
 set errorformat=%f\ line\ %l:\ %m

@@ -1,4 +1,4 @@
-*multiplayer_help.txt*	For Vim version 8.0	November 2016
+*multiplayer_help.txt*	For Vim version 8.0	Marts 2017
 *multiplayer* *Multiplayer*
 ==============================================================================
   __  __ _    _ _   _______ _____ _____  _           __     ________ _____  
@@ -153,13 +153,13 @@ STATUSLINE                                              *multiplayer-statusline*
     To get info about status of the multiplayer plugin, add this to your
     |statusline| in your .vimrc:
 >
-    let &statusline .= multiplayer#StatusLine()
+    let &statusline .= multiplayer_statusline#Get()
 <
     To get vim's default statusline, but with multiplayer status inserted, try
     this:
 >
     let &statusline = "%<%f %h%m%r%="
-    let &statusline .= multiplayer#StatusLine()
+    let &statusline .= multiplayer_statusline#Get()
     let &statusline .= " %-14.(%l,%c%V%) %P"
 <
 ==============================================================================
