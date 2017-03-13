@@ -41,6 +41,7 @@ function! s:DebugSetCur(pid)
 	if s:cur_debug_pid != 0
 		call SendToDut('iam', s:cur_debug_pid, ["*debug".(s:cur_debug_pid-1000000)."*"])
 		call SendToDut('highlight', s:cur_debug_pid, [highlights[s:cur_debug_pid-1000000]])
+		call SendToDut('file', s:cur_debug_pid, ["$vimtestdir/a.txt"])
 	endif
 endfunction
 

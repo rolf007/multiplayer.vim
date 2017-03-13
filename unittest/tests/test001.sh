@@ -20,6 +20,7 @@ call assert_equal(ExpectedMsg('highlight', [['inverse', 'Red', 'White']]), GetMs
 call assert_equal(0, GetMsg(my_pid))
 
 call SendToDut("iam", my_pid, ['Tester'])
+call SendToDut("file", my_pid, ['$vimtestdir/a.txt'])
 call SendToDut('cursor', my_pid, ['n', 1, 1, 1, 1])
 
 call SendToDut("diff", my_pid, ['$vimtestdir/a.txt', '1c1', '< ', '---', '> hello world'])

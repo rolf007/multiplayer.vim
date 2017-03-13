@@ -282,13 +282,14 @@ function! s:ParseMsg(msg)
 		let x1 = msg[3]
 		let y1 = msg[4]
 		"echom "received cursor: " . mode . ' ' . x0 . ' ' . y0 . ' ' . x1 . ' ' . y1
+		call <SID>RemoveCursor(pid)
 		let s:players[pid].mode = mode
 		if y0 < y1 || (y0 == y1 && x0 < x1)
 			let s:players[pid].range = [x0, y0, x1, y1]
 		else
 			let s:players[pid].range = [x1, y1, x0, y0]
 		endif
-		call <SID>DrawCursors()
+		call <SID>DrawCursor(pid)
 	elseif command == 'hello'
 		"echom "received hello: " . string(pid)
 		"echom "I would like to send iam " . s:players[getpid()].name . " to " . pid
@@ -326,12 +327,12 @@ function! s:ParseMsg(msg)
 		redrawstatus
 	elseif command == 'file'
 		let file = msg[0]
-		call <SID>DrawCursors()
+		call <SID>RemoveCursor(pid)
 		let s:players[pid].file = file
+		call <SID>DrawCursor(pid)
 	elseif command == 'byebye'
-		let byefile = s:players[pid].file
+		call <SID>RemoveCursor(pid)
 		unlet s:players[pid]
-		call <SID>DrawCursors()
 		call <SID>UpdateStatusLine()
 		redrawstatus
 	elseif command == 'written'
@@ -432,12 +433,12 @@ function! s:SetFirstAvailableHighlight()
 	endfor
 endfunction
 
-function s:CmdWinEnter()
+function! s:CmdWinEnter()
 	"echom "CmdWinEnter"
 	let s:in_cmdwin = 1
 endfunction
 
-function s:CmdWinLeave()
+function! s:CmdWinLeave()
 	"echom "CmdWinLeave"
 	if s:remote_history_size != 0
 		let hist = expand("<afile>")
@@ -591,25 +592,24 @@ function! s:UnmapAll()
 	endif
 endfunction
 
-function! s:DrawCursors()
-	let oldnr = winnr()
-	for w in range(1, winnr('$'))
-		exec w.'wincmd w'
-		for m in getmatches()
-			if match(m.group, "MPCol") == 0
-				call matchdelete(m.id)
-			endif
-		endfor
+function! s:RemoveCursorPart(pid)
+	for m in getmatches()
+		if m.group == "MPCol" . a:pid
+			call matchdelete(m.id)
+		endif
 	endfor
-	exec oldnr.'wincmd w'
+endfunction
 
-	let the_others = <SID>GetPlayers(getpid())
-	for player in the_others
-		let f = s:players[player].file
-		for y in range(s:players[player].range[1], s:players[player].range[3])
-			let events = <SID>GetEvents(y, player)
-			call <SID>BuffDoAll(f, { -> matchadd('MPCol' . player, '\%>' . string(events[0]-1) . 'v\%<' . events[1] . 'v\%' . y . 'l') })
-		endfor
+function! s:RemoveCursor(pid)
+	let f = s:players[a:pid].file
+	call <SID>BuffDoAll(f, { -> <SID>RemoveCursorPart(a:pid) })
+endfunction
+
+function! s:DrawCursor(pid)
+	let f = s:players[a:pid].file
+	for y in range(s:players[a:pid].range[1], s:players[a:pid].range[3])
+		let events = <SID>GetEvents(y, a:pid)
+		call <SID>BuffDoAll(f, { -> matchadd('MPCol' . a:pid, '\%>' . string(events[0]-1) . 'v\%<' . events[1] . 'v\%' . y . 'l') })
 	endfor
 endfunction
 
@@ -663,7 +663,7 @@ function! s:GetPlayers(my_pid)
 	return sort(the_others, 'n')
 endfunction
 
-function s:UpdateStatusLine()
+function! s:UpdateStatusLine()
 	let a = &statusline
 	let body = ""
 	let players = <SID>GetPlayers('')
