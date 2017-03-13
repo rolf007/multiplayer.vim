@@ -63,6 +63,10 @@ if !exists('g:multiplayer_auto_connect')
 	endif
 endif
 
+if !exists('g:multiplayer_auto_split')
+	let g:multiplayer_auto_split = "n"
+endif
+
 if !exists('g:multiplayer_chat_mapping')
 	let g:multiplayer_chat_mapping = "m<CR>"
 endif

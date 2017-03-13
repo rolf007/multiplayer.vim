@@ -282,6 +282,36 @@ function! s:ParseMsg(msg)
 		let x1 = msg[3]
 		let y1 = msg[4]
 		"echom "received cursor: " . mode . ' ' . x0 . ' ' . y0 . ' ' . x1 . ' ' . y1
+		if g:multiplayer_auto_split == 'y'
+			let top = line('w0')
+			let bot = line('w$')
+			if has_key(s:players[pid], 'winid')
+				let home = win_getid()
+				call win_gotoid(s:players[pid].winid)
+				execute("normal! " . y0 . "G")
+				if y0 >= top && y0 <= bot
+					unlet s:players[pid].winid
+					let &eadirection = "hor"
+					close
+					let &eadirection = "both"
+				endif
+				call win_gotoid(home)
+			elseif y0 < top
+				let &eadirection = "hor"
+				aboveleft 6split
+				let &eadirection = "both"
+				let s:players[pid].winid = win_getid()
+				execute("normal! " . y0 . "G")
+				wincmd j
+			elseif y0 > bot
+				let &eadirection = "hor"
+				belowright 6split
+				let &eadirection = "both"
+				let s:players[pid].winid = win_getid()
+				execute("normal! " . y0 . "G")
+				wincmd k
+			endif
+		endif
 		call <SID>RemoveCursor(pid)
 		let s:players[pid].mode = mode
 		if y0 < y1 || (y0 == y1 && x0 < x1)

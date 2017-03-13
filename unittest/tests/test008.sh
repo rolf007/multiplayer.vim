@@ -3,11 +3,54 @@ source $ROOT/"${BASH_SOURCE%/*}"/../inject.sh
 #Playing around with split
 
 cat >>$vimtestdir/.vimrc <<EOL
+set scrolloff=3
+let g:multiplayer_auto_split = 'y'
 EOL
 
 cat >>$vimtestdir/test.vim <<EOL
 
 call histadd(':', 'MultiplayerLs')
+call histadd(':', 'call SplitAll(2,4)')
+call histadd(':', 'call UnSplit()')
+
+let g:tmp = []
+
+function! SplitAll(same, others)
+	let home = win_getid()
+	if a:others > 0
+		let &eadirection = "hor"
+		for n in range(a:same)
+			exe "aboveleft" . 6 . "split"
+			call add(g:tmp,[win_getid(),&eadirection])
+			wincmd j
+		endfor
+	endif
+
+	if a:others > 0
+		let &eadirection = "ver"
+		botright 40vsplit a
+		let height = winheight(0)/a:others-1
+		call add(g:tmp,[win_getid(),&eadirection])
+		let &eadirection = "hor"
+		for n in range(a:others - 1)
+			exe "rightbelow" . height . "split b"
+			call add(g:tmp,[win_getid(),&eadirection])
+			wincmd k
+		endfor
+	endif
+	let &eadirection = "both"
+	call win_gotoid(home)
+endfunction
+
+function! UnSplit()
+  for winid in reverse(g:tmp)
+    let &eadirection = winid[1]
+    exe win_id2win(winid[0]) . "wincmd c"
+  endfo
+  let g:tmp = []
+  let &eadirection = "both"
+endfunction
+
 
 let s:cur_debug_pid = 0
 
@@ -49,7 +92,7 @@ function! s:DebugConnect()
 	let pid = CreateTestPlayer()
 	let g:test_players[pid].file = "$vimtestdir/a.txt"
 	let g:test_players[pid].mode = "n"
-	let g:test_players[pid].range = [1,1,1,1]
+	let g:test_players[pid].range = [1,v:count,1,v:count]
 	call SendToDut('hello', pid, [])
 	call <SID>DebugSetCur(pid)
 	call SendCursor(s:cur_debug_pid)
@@ -101,13 +144,10 @@ nnoremap <silent> <C-Down> :call <SID>DebugMove([0,1])<CR>
 nnoremap <silent> <C-Left> :call <SID>DebugMove([-1,0])<CR>
 nnoremap <silent> <C-Right> :call <SID>DebugMove([1,0])<CR>
 
-execute("normal! i123\<CR>\<ESC>")
-execute("normal! i456\<CR>\<ESC>")
-execute("normal! i789\<CR>\<ESC>")
-execute("normal! i1011\<CR>\<ESC>")
-execute("normal! i1213\<CR>\<ESC>")
-execute("normal! i1415\<CR>\<ESC>")
-execute("normal! 3k")
+for i in range(1,100)
+	execute("normal! i" . i . "\<CR>\<ESC>")
+endfor
+execute("normal! 50G")
 MultiplayerConnect
 
 EOL
