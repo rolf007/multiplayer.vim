@@ -282,42 +282,15 @@ function! s:ParseMsg(msg)
 		let x1 = msg[3]
 		let y1 = msg[4]
 		"echom "received cursor: " . mode . ' ' . x0 . ' ' . y0 . ' ' . x1 . ' ' . y1
-		if g:multiplayer_auto_split == 'y'
-			let top = line('w0')
-			let bot = line('w$')
-			if has_key(s:players[pid], 'winid')
-				let home = win_getid()
-				call win_gotoid(s:players[pid].winid)
-				execute("normal! " . y0 . "G")
-				if y0 >= top && y0 <= bot
-					unlet s:players[pid].winid
-					let &eadirection = "hor"
-					close
-					let &eadirection = "both"
-				endif
-				call win_gotoid(home)
-			elseif y0 < top
-				let &eadirection = "hor"
-				aboveleft 6split
-				let &eadirection = "both"
-				let s:players[pid].winid = win_getid()
-				execute("normal! " . y0 . "G")
-				wincmd j
-			elseif y0 > bot
-				let &eadirection = "hor"
-				belowright 6split
-				let &eadirection = "both"
-				let s:players[pid].winid = win_getid()
-				execute("normal! " . y0 . "G")
-				wincmd k
-			endif
-		endif
 		call <SID>RemoveCursor(pid)
 		let s:players[pid].mode = mode
 		if y0 < y1 || (y0 == y1 && x0 < x1)
 			let s:players[pid].range = [x0, y0, x1, y1]
 		else
 			let s:players[pid].range = [x1, y1, x0, y0]
+		endif
+		if g:multiplayer_auto_split == 'y'
+			call <SID>UpdateSplits()
 		endif
 		call <SID>DrawCursor(pid)
 	elseif command == 'hello'
@@ -702,6 +675,61 @@ function! s:UpdateStatusLine()
 	endfor
 	let a = substitute(a, '\(.*%{multiplayer_statusline#Begin()}\)\(.*\)\(%{multiplayer_statusline#End()}.*\)', '\1' . body . '\3', "")
 	let &statusline = a
+endfunction
+
+function! s:CloseSplits()
+	let home = win_getid()
+	let the_others = <SID>GetPlayers(getpid())
+	for pid in the_others
+		if has_key(s:players[pid], 'winid')
+			call win_gotoid(s:players[pid].winid)
+			let &eadirection = s:players[pid].ead
+			close
+			unlet s:players[pid].winid
+			unlet s:players[pid].ead
+		endif
+	endfor
+	let &eadirection = "both"
+	call win_gotoid(home)
+endfunction
+
+function! s:UpdateSplits()
+	call <SID>CloseSplits()
+	let the_others = <SID>GetPlayers(getpid())
+	for pid in the_others
+		let top = line('w0')
+		let bot = line('w$')
+		let y0 = s:players[pid].range[1]
+		if has_key(s:players[pid], 'winid')
+			let home = win_getid()
+			call win_gotoid(s:players[pid].winid)
+			execute("normal! " . y0 . "G")
+			if y0 >= top && y0 <= bot
+"				unlet s:players[pid].winid
+"				unlet s:players[pid].ead
+"				let &eadirection = "hor"
+"				close
+"				let &eadirection = "both"
+			endif
+			call win_gotoid(home)
+		elseif y0 < top
+			let &eadirection = "hor"
+			aboveleft 6split
+			let &eadirection = "both"
+			let s:players[pid].winid = win_getid()
+			let s:players[pid].ead = "hor"
+			execute("normal! " . y0 . "G")
+			wincmd j
+		elseif y0 > bot
+			let &eadirection = "hor"
+			belowright 6split
+			let &eadirection = "both"
+			let s:players[pid].winid = win_getid()
+			let s:players[pid].ead = "hor"
+			execute("normal! " . y0 . "G")
+			wincmd k
+		endif
+	endfor
 endfunction
 
 
