@@ -92,7 +92,7 @@ function! s:DebugConnect()
 	let pid = CreateTestPlayer()
 	let g:test_players[pid].file = "$vimtestdir/a.txt"
 	let g:test_players[pid].mode = "n"
-	let g:test_players[pid].range = [1,v:count,1,v:count]
+	let g:test_players[pid].range = [1,v:count1,1,v:count1]
 	call SendToDut('hello', pid, [])
 	call <SID>DebugSetCur(pid)
 	call SendCursor(s:cur_debug_pid)
@@ -139,10 +139,10 @@ nnoremap <silent> mc :<C-U>call <SID>DebugConnect()<CR>
 nnoremap <silent> md :<C-U>call <SID>DebugDisconnect()<CR>
 nnoremap <silent> mn :call <SID>DebugNext()<CR>
 nnoremap <silent> mp :call <SID>DebugPrev()<CR>
-nnoremap <silent> <C-Up> :call <SID>DebugMove([0,-1])<CR>
-nnoremap <silent> <C-Down> :call <SID>DebugMove([0,1])<CR>
-nnoremap <silent> <C-Left> :call <SID>DebugMove([-1,0])<CR>
-nnoremap <silent> <C-Right> :call <SID>DebugMove([1,0])<CR>
+nnoremap <silent> <C-Up> :<C-U>call <SID>DebugMove([0,-v:count1])<CR>
+nnoremap <silent> <C-Down> :<C-U>call <SID>DebugMove([0,v:count1])<CR>
+nnoremap <silent> <C-Left> :<C-U>call <SID>DebugMove([-v:count1,0])<CR>
+nnoremap <silent> <C-Right> :<C-U>call <SID>DebugMove([v:count1,0])<CR>
 
 for i in range(1,100)
 	execute("normal! i" . i . "\<CR>\<ESC>")
