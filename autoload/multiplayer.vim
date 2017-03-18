@@ -677,59 +677,125 @@ function! s:UpdateStatusLine()
 	let &statusline = a
 endfunction
 
-function! s:CloseSplits()
-	let home = win_getid()
-	let the_others = <SID>GetPlayers(getpid())
-	for pid in the_others
-		if has_key(s:players[pid], 'winid')
-			call win_gotoid(s:players[pid].winid)
-			let &eadirection = s:players[pid].ead
-			close
-			unlet s:players[pid].winid
-			unlet s:players[pid].ead
+function! s:FindMotherWinId(file, the_others)
+	for w in range(1, winnr('$'))
+		if bufnr(a:file) == winbufnr(w)
+			let winid = win_getid(w)
+			let mother = 1
+			for pid in a:the_others
+				if has_key(s:players[pid], 'winid') && s:players[pid].winid == winid
+					let mother = 0
+				endif
+			endfor
+			if mother == 1
+				return winid
+			endif
 		endif
 	endfor
-	let &eadirection = "both"
-	call win_gotoid(home)
+	return -1
+endfunction
+
+function! s:FindBrotherWinId(the_others)
+	for pid in a:the_others
+		if has_key(s:players[pid], 'dir' && s:players[pid].dir == 'side')
+			return s:players[pid].winid
+		endif
+	endfor
+	return -1
 endfunction
 
 function! s:UpdateSplits()
-	call <SID>CloseSplits()
+	let home = win_getid()
 	let the_others = <SID>GetPlayers(getpid())
-	for pid in the_others
-		let top = line('w0')
-		let bot = line('w$')
-		let y0 = s:players[pid].range[1]
-		if has_key(s:players[pid], 'winid')
-			let home = win_getid()
-			call win_gotoid(s:players[pid].winid)
-			execute("normal! " . y0 . "G")
-			if y0 >= top && y0 <= bot
-"				unlet s:players[pid].winid
-"				unlet s:players[pid].ead
-"				let &eadirection = "hor"
-"				close
-"				let &eadirection = "both"
+	" (1) close and create splits if needed
+	let chg = 1
+	while chg
+		let chg = 0
+		for pid in the_others
+			let motherId = <SID>FindMotherWinId(s:players[pid].file, the_others)
+			if motherId > 0
+				let top = line('w0')
+				let bot = line('w$')
+				let y0 = s:players[pid].range[1]
+				if has_key(s:players[pid], 'dir')
+					let d = s:players[pid].dir
+					if d == 'side'
+						call win_gotoid(s:players[pid].winid)
+						unlet s:players[pid].winid
+						unlet s:players[pid].dir
+						let &eadirection = "both"
+						close
+					endif
+					if (y0 >= top && d == 'above') || (y0 <= bot && d == 'below')
+						call win_gotoid(s:players[pid].winid)
+						unlet s:players[pid].winid
+						unlet s:players[pid].dir
+						let &eadirection = "hor"
+						close
+					endif
+				endif
+				if !has_key(s:players[pid], 'dir')
+					if y0 < top
+						call win_gotoid(motherId)
+						let &eadirection = "hor"
+						aboveleft 6split
+						let s:players[pid].winid = win_getid()
+						let s:players[pid].dir = 'above'
+						wincmd j
+						let chg = 1
+					elseif y0 > bot
+						call win_gotoid(motherId)
+						let &eadirection = "hor"
+						belowright 6split
+						let s:players[pid].winid = win_getid()
+						let s:players[pid].dir = 'below'
+						wincmd k
+						let chg = 1
+					endif
+				endif
+			else
+				if has_key(s:players[pid], 'dir')
+					if s:players[pid].dir != 'side'
+						call win_gotoid(s:players[pid].winid)
+						unlet s:players[pid].winid
+						unlet s:players[pid].dir
+						let &eadirection = "hor"
+						close
+					endif
+				endif
+				if !has_key(s:players[pid], 'dir')
+					let brotherId = <SID>FindBrotherWinId(the_others)
+					if brotherId > 0
+						echom "found brother"
+						call win_gotoid(brotherId)
+						let &eadirection = "both"
+						execute("rightbelow split " . s:players[pid].file)
+						let s:players[pid].winid = win_getid()
+						let s:players[pid].dir = 'side'
+					else
+						echom "NOT found brother"
+						let &eadirection = "ver"
+						execute("botright 40vsplit " . s:players[pid].file)
+						let s:players[pid].winid = win_getid()
+						let s:players[pid].dir = 'side'
+					endif
+				endif
 			endif
-			call win_gotoid(home)
-		elseif y0 < top
-			let &eadirection = "hor"
-			aboveleft 6split
-			let &eadirection = "both"
-			let s:players[pid].winid = win_getid()
-			let s:players[pid].ead = "hor"
+		endfor
+	endwhile
+	" (2) reorder splits if needed
+
+	" (3) scroll in splits
+	for pid in the_others
+		if has_key(s:players[pid], 'winid')
+			call win_gotoid(s:players[pid].winid)
+			let y0 = s:players[pid].range[1]
 			execute("normal! " . y0 . "G")
-			wincmd j
-		elseif y0 > bot
-			let &eadirection = "hor"
-			belowright 6split
-			let &eadirection = "both"
-			let s:players[pid].winid = win_getid()
-			let s:players[pid].ead = "hor"
-			execute("normal! " . y0 . "G")
-			wincmd k
 		endif
 	endfor
+
+	let &eadirection = "both"
+	call win_gotoid(home)
 endfunction
 
 

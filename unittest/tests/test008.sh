@@ -7,6 +7,15 @@ set scrolloff=3
 let g:multiplayer_auto_split = 'y'
 EOL
 
+cat >>$vimtestdir/f <<EOL
+#a
+#b
+#c
+#d
+#e
+#f
+EOL
+
 cat >>$vimtestdir/test.vim <<EOL
 
 call histadd(':', 'MultiplayerLs')
@@ -58,10 +67,14 @@ function! s:DebugMove(delta)
 	if s:cur_debug_pid == 0
 		return
 	endif
-	let g:test_players[s:cur_debug_pid].range[1] += a:delta[1]
-	let g:test_players[s:cur_debug_pid].range[3] += a:delta[1]
-	let g:test_players[s:cur_debug_pid].range[0] += a:delta[0]
-	let g:test_players[s:cur_debug_pid].range[2] += a:delta[0]
+	if g:test_players[s:cur_debug_pid].range[0] > 1 || a:delta[0] == 1
+		let g:test_players[s:cur_debug_pid].range[0] += a:delta[0]
+		let g:test_players[s:cur_debug_pid].range[2] += a:delta[0]
+	endif
+	if g:test_players[s:cur_debug_pid].range[1] > 1 || a:delta[1] == 1
+		let g:test_players[s:cur_debug_pid].range[1] += a:delta[1]
+		let g:test_players[s:cur_debug_pid].range[3] += a:delta[1]
+	endif
 	call SendCursor(s:cur_debug_pid)
 endfunction
 
@@ -84,7 +97,6 @@ function! s:DebugSetCur(pid)
 	if s:cur_debug_pid != 0
 		call SendToDut('iam', s:cur_debug_pid, ["*debug".(s:cur_debug_pid-1000000)."*"])
 		call SendToDut('highlight', s:cur_debug_pid, [highlights[s:cur_debug_pid-1000000]])
-		call SendToDut('file', s:cur_debug_pid, ["$vimtestdir/a.txt"])
 	endif
 endfunction
 
@@ -95,6 +107,7 @@ function! s:DebugConnect()
 	let g:test_players[pid].range = [1,v:count1,1,v:count1]
 	call SendToDut('hello', pid, [])
 	call <SID>DebugSetCur(pid)
+	call SendToDut('file', s:cur_debug_pid, ["$vimtestdir/a.txt"])
 	call SendCursor(s:cur_debug_pid)
 endfunction
 
@@ -121,6 +134,19 @@ function! s:DebugPrev()
 	endfor
 endfunction
 
+function! s:DebugFile()
+	let file = input("goto file> ")
+	if file == ""
+		let file = "a.txt"
+	endif
+	call SendToDut('file', s:cur_debug_pid, [file])
+	let g:test_players[s:cur_debug_pid].range[0] = 1
+	let g:test_players[s:cur_debug_pid].range[2] = 1
+	let g:test_players[s:cur_debug_pid].range[1] = 1
+	let g:test_players[s:cur_debug_pid].range[3] = 1
+	call SendCursor(s:cur_debug_pid)
+endfunction
+
 function! s:DebugDisconnect()
 	if s:cur_debug_pid == 0
 		return
@@ -139,6 +165,7 @@ nnoremap <silent> mc :<C-U>call <SID>DebugConnect()<CR>
 nnoremap <silent> md :<C-U>call <SID>DebugDisconnect()<CR>
 nnoremap <silent> mn :call <SID>DebugNext()<CR>
 nnoremap <silent> mp :call <SID>DebugPrev()<CR>
+nnoremap <silent> mf :call <SID>DebugFile()<CR>
 nnoremap <silent> <C-Up> :<C-U>call <SID>DebugMove([0,-v:count1])<CR>
 nnoremap <silent> <C-Down> :<C-U>call <SID>DebugMove([0,v:count1])<CR>
 nnoremap <silent> <C-Left> :<C-U>call <SID>DebugMove([-v:count1,0])<CR>
