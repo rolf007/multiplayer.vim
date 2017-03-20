@@ -32,6 +32,10 @@ function! multiplayer#Connect(profile_file, player_profile)
 		autocmd CmdwinEnter * call <SID>CmdWinEnter()
 		autocmd CmdwinLeave * call <SID>CmdWinLeave()
 	augroup END
+	augroup MultiplayerGlobalAuGroup
+		autocmd!
+		autocmd SwapExists * call <SID>SwapExistsConnected(v:swapname)
+	augroup END
 	let s:players[getpid()].file = expand('%:p')
 	let mode = mode()
 	let range = [virtcol("."), getpos(".")[1], virtcol("v"), getpos("v")[1]]
@@ -46,6 +50,10 @@ function! multiplayer#Connect(profile_file, player_profile)
 	call <SID>SendBroadcastMsg('hello', [])
 	call <SID>MapAll()
 	call <SID>UpdateStatusLine()
+endfunction
+
+function! s:SwapExistsConnected(swapname)
+	let v:swapchoice = 'e'
 endfunction
 
 function! s:BufEnter()
@@ -189,6 +197,10 @@ function! s:Disconnect()
 	augroup MultiplayerAuGroup
 		autocmd!
 	augroup END
+	augroup MultiplayerGlobalAuGroup
+		autocmd!
+		autocmd SwapExists * call MultiplayerSwapExists(v:swapname)
+	augroup END
 	if s:profile_file != ''
 		call writefile([string(s:player_profile)], s:profile_file)
 	endif
@@ -289,9 +301,7 @@ function! s:ParseMsg(msg)
 		else
 			let s:players[pid].range = [x1, y1, x0, y0]
 		endif
-		if g:multiplayer_auto_split == 'y'
-			call <SID>UpdateSplits()
-		endif
+		call <SID>UpdateSplits()
 		call <SID>DrawCursor(pid)
 	elseif command == 'hello'
 		"echom "received hello: " . string(pid)
@@ -305,6 +315,7 @@ function! s:ParseMsg(msg)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 		call <SID>SendUnicastMsg('highlight', [s:players[getpid()].highlight], pid)
 		call <SID>UpdateStatusLine()
+		call <SID>UpdateSplits()
 	elseif command == 'hello_reply'
 		"echom "received hello_reply: " . string(pid)
 		let s:players[pid] = {"name": "", "file": "", "mode": "n", "range": [1,1,1,1], "highlight":["","",""]}
@@ -314,6 +325,7 @@ function! s:ParseMsg(msg)
 		call <SID>SendUnicastMsg('cursor', [s:players[getpid()].mode] + s:players[getpid()].range, pid)
 		call <SID>SendUnicastMsg('highlight', [s:players[getpid()].highlight], pid)
 		call <SID>UpdateStatusLine()
+		call <SID>UpdateSplits()
 	elseif command == 'iam'
 		"echom "received iam: " . string(pid) . '-' . string(msg[0])
 		let s:players[pid].name = msg[0]
@@ -330,13 +342,16 @@ function! s:ParseMsg(msg)
 		redrawstatus
 	elseif command == 'file'
 		let file = msg[0]
+		"echom "received file: " . file . ' from ' . string(pid)
 		call <SID>RemoveCursor(pid)
 		let s:players[pid].file = file
+		call <SID>UpdateSplits()
 		call <SID>DrawCursor(pid)
 	elseif command == 'byebye'
 		call <SID>RemoveCursor(pid)
 		unlet s:players[pid]
 		call <SID>UpdateStatusLine()
+		call <SID>UpdateSplits()
 		redrawstatus
 	elseif command == 'written'
 		let written_as = msg[0]
@@ -705,6 +720,9 @@ function! s:FindBrotherWinId(the_others)
 endfunction
 
 function! s:UpdateSplits()
+	if g:multiplayer_auto_split != 'y'
+		return
+	endif
 	let home = win_getid()
 	let the_others = <SID>GetPlayers(getpid())
 	" (1) close and create splits if needed
@@ -755,7 +773,7 @@ function! s:UpdateSplits()
 				endif
 			else
 				if has_key(s:players[pid], 'dir')
-					if s:players[pid].dir != 'side'
+					if s:players[pid].dir != 'side' || bufnr(s:players[pid].file) != winbufnr(s:players[pid].winid)
 						call win_gotoid(s:players[pid].winid)
 						unlet s:players[pid].winid
 						unlet s:players[pid].dir

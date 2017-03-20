@@ -83,10 +83,10 @@ endif
 
 augroup MultiplayerGlobalAuGroup
 	autocmd!
-	autocmd SwapExists * call <SID>SwapExists(v:swapname)
+	autocmd SwapExists * call MultiplayerSwapExists(v:swapname)
 augroup END
 
-function! s:SwapExists(swapname)
+function! MultiplayerSwapExists(swapname)
 	if g:multiplayer_auto_connect == 'y'
 		let v:swapchoice = 'e'
 		return
