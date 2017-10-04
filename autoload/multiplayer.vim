@@ -10,6 +10,7 @@ function! multiplayer#Connect(profile_file, player_profile)
 	let s:read_buffer = []
 	let s:remote_history = 0
 	let s:in_cmdwin = 0
+	let s:cmdwinheight = 0
 	let s:msg_queue = []
 	let s:players = {}
 	let s:players[getpid()] = {"name": g:multiplayer_name, "file": "", "mode": "n", "range": [1,1,1,1], "highlight": g:multiplayer_highlight}
@@ -363,9 +364,9 @@ function! s:ParseMsg(msg)
 		let chat_msg = msg[3]
 		call <SID>AddToChatHistory(file, x, y, pid, chat_msg, 1)
 	elseif command == 'request_register'
-		let register = msg[1]
 		let operation = msg[0]
-		"echom "received request_register: reg ='" . register . "', operation = '" . operation . "', from '" . pid
+		let register = msg[1]
+		"echom "received request_register: operation ='" . operation . "', register = '" . register . "', from '" . pid
 		if register == 'A' || register == 'B'
 			let register_value = escape(expand("<cword>"), '/$.*\{[^')
 			if register == 'B' && match(register_value, "\\k") != -1
@@ -374,10 +375,10 @@ function! s:ParseMsg(msg)
 			let register_type = 'v'
 			"echom "replying: " . ' ' . operation . register_value . ' to ' . pid
 			call <SID>SendUnicastMsg('reply_register', [operation, register_value, register_type], pid)
-		elseif register == 'q/' || register == 'q?' || register == 'q:'
-			"echom "cmdwinheight = " . string(&cmdwinheight)
+		elseif register[:1] == 'q:' || register[:1] == 'q/'
+			let remote_cmdwinheight = register[2:]
 			let history = []
-			for i in range(-&cmdwinheight, -1)
+			for i in range(-remote_cmdwinheight, -1)
 				let history += [histget(register[1], i)]
 			endfor
 			"echom "replying history: " . ' ' . string([operation] + history) . ' to ' . pid
@@ -410,6 +411,7 @@ function! s:ParseMsg(msg)
 		for h in history
 			call histadd(operation[1], h)
 		endfor
+		let s:cmdwinheight = len(history)
 		call feedkeys(operation)
 		let s:remote_history = 1
 	elseif command == 'diff'
@@ -458,13 +460,13 @@ endfunction
 
 function! s:CmdWinLeave()
 	"echom "CmdWinLeave"
-	if s:remote_history_size != 0
+	if s:cmdwinheight != 0
 		let hist = expand("<afile>")
-		for i in range(-&cmdwinheight, -1)
+		for i in range(-s:cmdwinheight, -1)
 			call histdel(hist, -1)
 		endfor
 	endif
-	let s:remote_history_size = 0
+	let s:cmdwinheight = 0
 	let s:in_cmdwin = 0
 endfunction
 
@@ -565,10 +567,10 @@ function! s:MapAll()
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "# :call <SID>Put('B', '?')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g* :call <SID>Put('A', '/')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g# :call <SID>Put('A', '?')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q/ :call <SID>Put('q/', 'q/')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q? :call <SID>Put('q/', 'q?')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q/ :call <SID>Put('q/'.&cmdwinheight, 'q/')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q? :call <SID>Put('q/'.&cmdwinheight, 'q?')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . ": :call <SID>Put(':', ':')<CR>"
-		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q: :call <SID>Put('q:', 'q:')<CR>"
+		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "q: :call <SID>Put('q:'.&cmdwinheight, 'q:')<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g. :call <SID>GoToPlayer()<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "g% :echom \"<l>g% not implemented yet\"<CR>"
 		execute "nnoremap <silent> " . g:multiplayer_nmap_leader . "gv :echom \"<l>gv not implemented yet\"<CR>"
